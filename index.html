@@ -167,10 +167,10 @@
   .filter-reset:hover { color: var(--text-1); border-color: var(--accent); }
 
   .chart-scroll { overflow-x: auto; padding-bottom: 4px; }
-  .chart-wrap { display: flex; align-items: flex-end; gap: 16px; height: 170px; min-width: min-content; padding: 0 4px; }
-  .chart-col { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 44px; }
-  .chart-bars { display: flex; align-items: flex-end; gap: 3px; height: 130px; }
-  .chart-bar { width: 11px; border-radius: 3px 3px 1px 1px; min-height: 2px; cursor: default; }
+  .chart-wrap { display: flex; align-items: flex-end; justify-content: space-evenly; gap: 18px; height: 240px; width: 100%; min-width: 100%; padding: 0 8px; }
+  .chart-col { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 54px; flex: 0 0 auto; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 4px; height: 190px; }
+  .chart-bar { width: 16px; border-radius: 4px 4px 1px 1px; min-height: 2px; cursor: default; }
   .chart-bar:hover { filter: brightness(1.15); }
   .chart-date-label { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
   .chart-empty { color: var(--text-muted); font-size: 13px; padding: 40px 0; text-align: center; }
@@ -422,7 +422,7 @@
         ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
           var bar = document.createElement('div');
           bar.className = 'chart-bar';
-          var h = Math.max((d[cat] / maxVal) * 130, d[cat] > 0 ? 2 : 0);
+          var h = Math.max((d[cat] / maxVal) * 190, d[cat] > 0 ? 2 : 0);
           bar.style.height = h + 'px';
           bar.style.background = CAT_COLOR_HEX[cat];
           bar.addEventListener('mouseenter', function (e) {
