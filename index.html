@@ -79,6 +79,18 @@
   h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 700; text-wrap: balance; }
   .subtitle { color: var(--text-2); font-size: 14px; margin: 0; max-width: 65ch; }
 
+  /* ---- category tabs ---- */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 11px; width: fit-content; }
+  .tab-btn {
+    appearance: none; border: none; background: transparent; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-2);
+    padding: 8px 14px; border-radius: 8px; transition: background 120ms ease, color 120ms ease;
+  }
+  .tab-btn:hover { color: var(--text-1); }
+  .tab-btn.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .tab-btn .tab-sub { display: block; font-size: 10.5px; font-weight: 500; color: var(--text-muted); margin-top: 1px; }
+  .tab-btn.active .tab-sub { color: var(--text-2); }
+
   .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   @media (max-width: 640px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
   .stat {
@@ -138,9 +150,6 @@
   .tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; }
   .tooltip .tt-title { font-weight: 700; margin-bottom: 4px; }
 
-  .extra-rows .row { grid-template-columns: 190px 1fr 76px; }
-  .extra-rows .bar { background: var(--text-muted); opacity: 0.85; }
-
   details.table-toggle { margin: 14px 0 4px; }
   summary { cursor: pointer; font-size: 12px; color: var(--accent); font-weight: 600; list-style: none; }
   summary::-webkit-details-marker { display: none; }
@@ -164,16 +173,18 @@
 
     <header class="page-head">
       <span class="eyebrow">Sirtec Inovação · Consulta de serviços SIR357074</span>
-      <h1>Cortes realizados vs. meta proporcional, por unidade</h1>
-      <p class="subtitle">Contagem de serviços de corte concluídos (aba 1) comparada à meta de CORTE (aba 2) proporcionalizada até hoje, considerando apenas dias úteis de segunda a quinta (sexta, sábado e domingo não têm meta). Atualizado em 14/09/2026.</p>
+      <h1>Realizado vs. meta proporcional, por unidade</h1>
+      <p class="subtitle" id="subtitle"></p>
     </header>
+
+    <div class="tabs" id="tabs"></div>
 
     <div class="stat-row" id="stat-row"></div>
 
     <section class="panel">
       <div class="panel-head">
-        <h2 class="panel-title">Unidades com meta cadastrada</h2>
-        <span class="panel-note">14 unidades · ordenado por % de atingimento da meta proporcional</span>
+        <h2 class="panel-title">Unidades</h2>
+        <span class="panel-note" id="main-note"></span>
       </div>
       <div class="legend">
         <span class="legend-item"><span class="legend-swatch"></span> Realizado</span>
@@ -199,10 +210,10 @@
     <section class="panel">
       <div class="panel-head">
         <h2 class="panel-title">Ritmo diário e déficit acumulado</h2>
-        <span class="panel-note">14 unidades · ordenado por quanto está devendo em relação ao diário</span>
+        <span class="panel-note" id="pace-note"></span>
       </div>
       <div class="legend">
-        <span class="legend-item"><span class="legend-swatch" style="background:var(--accent)"></span> Devendo (cortes)</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--accent)"></span> Devendo</span>
         <span class="legend-item"><span class="legend-dot" style="background:var(--good)"></span> em dia</span>
         <span class="legend-item"><span class="legend-dot" style="background:var(--warning)"></span> até 3 dias de atraso</span>
         <span class="legend-item"><span class="legend-dot" style="background:var(--critical)"></span> 3+ dias de atraso</span>
@@ -222,20 +233,7 @@
       </details>
     </section>
 
-    <section class="panel">
-      <div class="panel-head">
-        <h2 class="panel-title">Unidades sem meta cadastrada na aba 2</h2>
-        <span class="panel-note">5 unidades · cortes realizados, sem meta para comparar</span>
-      </div>
-      <div class="rows extra-rows" id="extra-rows"></div>
-    </section>
-
-    <footer class="note">
-      Cortes = serviços concluídos nos tipos CORTE C, CORTE TOP25, CORTE B e CORTE A (todas as linhas da aba 1 já estão como "Concluído"). Linhas de BAIXA e RECORTE da aba de metas foram desconsideradas, conforme solicitado.<br>
-      Meta proporcional = meta do mês × (dias úteis seg-qui decorridos até hoje ÷ dias úteis seg-qui do mês inteiro). Setembro/2026 tem 18 dias entre segunda e quinta; até 14/09 (incluindo hoje) já se passaram 8 desses dias — fração de 44,4%. Sexta, sábado e domingo não entram na conta, nem como dia decorrido nem como dia de meta.<br>
-      Feira Sul, Feira Norte, Santo Amaro, Serrinha e Conceição do Coité aparecem na aba 1 mas não têm meta cadastrada na aba 2 — vale confirmar se pertencem a outro contrato ou se a meta está em outra fonte.<br>
-      Meta diária = meta do mês ÷ 18 dias úteis (seg-qui) de setembro/2026. Devendo = (meta diária × 8 dias já decorridos) − realizado, ou seja, o déficit de cada unidade contra o ritmo que ela deveria ter mantido até hoje. Dias de atraso = devendo ÷ meta diária.
-    </footer>
+    <footer class="note" id="footnote"></footer>
 
   </div>
 </div>
@@ -244,75 +242,21 @@
 
 <script>
 (function () {
-  var DATA = {
-    elapsed_days: 8,
-    total_days: 18,
-    frac: 0.4444,
-    with_meta: [
-      {"unidade": "Jequié", "meta_mes": 1410, "meta_prop": 626.7, "realizado": 318, "pct_prop": 50.7, "falta_prop": 308.7},
-      {"unidade": "Luís Eduardo Magalhães", "meta_mes": 1423, "meta_prop": 632.4, "realizado": 323, "pct_prop": 51.1, "falta_prop": 309.4},
-      {"unidade": "Santa Maria da Vitória", "meta_mes": 563, "meta_prop": 250.2, "realizado": 128, "pct_prop": 51.2, "falta_prop": 122.2},
-      {"unidade": "Brumado", "meta_mes": 479, "meta_prop": 212.9, "realizado": 111, "pct_prop": 52.1, "falta_prop": 101.9},
-      {"unidade": "Vitória da Conquista", "meta_mes": 2430, "meta_prop": 1080.0, "realizado": 578, "pct_prop": 53.5, "falta_prop": 502.0},
-      {"unidade": "Bom Jesus da Lapa", "meta_mes": 1040, "meta_prop": 462.2, "realizado": 289, "pct_prop": 62.5, "falta_prop": 173.2},
-      {"unidade": "Itapetinga", "meta_mes": 928, "meta_prop": 412.4, "realizado": 268, "pct_prop": 65.0, "falta_prop": 144.4},
-      {"unidade": "Barreiras", "meta_mes": 1355, "meta_prop": 602.2, "realizado": 395, "pct_prop": 65.6, "falta_prop": 207.2},
-      {"unidade": "Guanambi", "meta_mes": 1236, "meta_prop": 549.3, "realizado": 364, "pct_prop": 66.3, "falta_prop": 185.3},
-      {"unidade": "Irecê", "meta_mes": 2063, "meta_prop": 916.9, "realizado": 626, "pct_prop": 68.3, "falta_prop": 290.9},
-      {"unidade": "Itaberaba", "meta_mes": 1067, "meta_prop": 474.2, "realizado": 325, "pct_prop": 68.5, "falta_prop": 149.2},
-      {"unidade": "Seabra", "meta_mes": 504, "meta_prop": 224.0, "realizado": 166, "pct_prop": 74.1, "falta_prop": 58.0},
-      {"unidade": "Livramento de Nossa Senhora", "meta_mes": 142, "meta_prop": 63.1, "realizado": 91, "pct_prop": 144.2, "falta_prop": 0},
-      {"unidade": "Ibotirama", "meta_mes": 589, "meta_prop": 261.8, "realizado": 406, "pct_prop": 155.1, "falta_prop": 0}
-    ],
-    without_meta: [
-      {"unidade": "Feira Sul", "realizado": 863},
-      {"unidade": "Feira Norte", "realizado": 850},
-      {"unidade": "Santo Amaro", "realizado": 293},
-      {"unidade": "Serrinha", "realizado": 257},
-      {"unidade": "Conceição do Coité", "realizado": 187}
-    ],
-    totals: {"meta_mes": 15229, "meta_prop": 6768.4, "realizado": 4388, "pct_prop": 64.8, "falta_prop": 2380.4, "extra_total": 2450, "geral_total": 6838},
-    pace: [
-      {"unidade": "Vitória da Conquista", "falta_mes": 1852, "meta_diaria": 135.0, "devendo": 502.0, "dias_atraso": 3.72},
-      {"unidade": "Jequié", "falta_mes": 1092, "meta_diaria": 78.3, "devendo": 308.7, "dias_atraso": 3.94},
-      {"unidade": "Luís Eduardo Magalhães", "falta_mes": 1100, "meta_diaria": 79.1, "devendo": 309.4, "dias_atraso": 3.91},
-      {"unidade": "Irecê", "falta_mes": 1437, "meta_diaria": 114.6, "devendo": 290.9, "dias_atraso": 2.54},
-      {"unidade": "Barreiras", "falta_mes": 960, "meta_diaria": 75.3, "devendo": 207.2, "dias_atraso": 2.75},
-      {"unidade": "Guanambi", "falta_mes": 872, "meta_diaria": 68.7, "devendo": 185.3, "dias_atraso": 2.70},
-      {"unidade": "Bom Jesus da Lapa", "falta_mes": 751, "meta_diaria": 57.8, "devendo": 173.2, "dias_atraso": 3.00},
-      {"unidade": "Itaberaba", "falta_mes": 742, "meta_diaria": 59.3, "devendo": 149.2, "dias_atraso": 2.52},
-      {"unidade": "Itapetinga", "falta_mes": 660, "meta_diaria": 51.6, "devendo": 144.4, "dias_atraso": 2.80},
-      {"unidade": "Santa Maria da Vitória", "falta_mes": 435, "meta_diaria": 31.3, "devendo": 122.2, "dias_atraso": 3.91},
-      {"unidade": "Brumado", "falta_mes": 368, "meta_diaria": 26.6, "devendo": 101.9, "dias_atraso": 3.83},
-      {"unidade": "Seabra", "falta_mes": 338, "meta_diaria": 28.0, "devendo": 58.0, "dias_atraso": 2.07},
-      {"unidade": "Livramento de Nossa Senhora", "falta_mes": 51, "meta_diaria": 7.9, "devendo": 0, "dias_atraso": 0},
-      {"unidade": "Ibotirama", "falta_mes": 183, "meta_diaria": 32.7, "devendo": 0, "dias_atraso": 0}
-    ],
-    pace_totals: {"falta_mes": 10841, "meta_diaria": 846.1, "devendo": 2552.6, "dias_atraso": 3.02}
-  };
+  var DATA = {"as_of":"2026-09-14","elapsed_days":8,"total_days":18,"remaining_days":10,"dataset":{"TOTAL":{"rows":[{"unidade":"Barreiras","meta_mes":1626,"meta_prop":722.7,"realizado":526,"pct_prop":72.8,"falta_prop":196.7,"falta_mes":1100,"meta_diaria":90.3,"devendo":196.7,"dias_atraso":2.18},{"unidade":"Bom Jesus da Lapa","meta_mes":1257,"meta_prop":558.7,"realizado":475,"pct_prop":85.0,"falta_prop":83.7,"falta_mes":782,"meta_diaria":69.8,"devendo":83.7,"dias_atraso":1.2},{"unidade":"Brumado","meta_mes":574,"meta_prop":255.1,"realizado":147,"pct_prop":57.6,"falta_prop":108.1,"falta_mes":427,"meta_diaria":31.9,"devendo":108.1,"dias_atraso":3.39},{"unidade":"Conceição do Coité","meta_mes":623,"meta_prop":276.9,"realizado":307,"pct_prop":110.9,"falta_prop":0,"falta_mes":316,"meta_diaria":34.6,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Norte","meta_mes":2649,"meta_prop":1177.3,"realizado":1387,"pct_prop":117.8,"falta_prop":0,"falta_mes":1262,"meta_diaria":147.2,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Sul","meta_mes":3417,"meta_prop":1518.7,"realizado":1694,"pct_prop":111.5,"falta_prop":0,"falta_mes":1723,"meta_diaria":189.8,"devendo":0,"dias_atraso":0.0},{"unidade":"Guanambi","meta_mes":1468,"meta_prop":652.4,"realizado":522,"pct_prop":80.0,"falta_prop":130.4,"falta_mes":946,"meta_diaria":81.6,"devendo":130.4,"dias_atraso":1.6},{"unidade":"Ibotirama","meta_mes":732,"meta_prop":325.3,"realizado":669,"pct_prop":205.6,"falta_prop":0,"falta_mes":63,"meta_diaria":40.7,"devendo":0,"dias_atraso":0.0},{"unidade":"Irecê","meta_mes":2486,"meta_prop":1104.9,"realizado":949,"pct_prop":85.9,"falta_prop":155.9,"falta_mes":1537,"meta_diaria":138.1,"devendo":155.9,"dias_atraso":1.13},{"unidade":"Itaberaba","meta_mes":1307,"meta_prop":580.9,"realizado":534,"pct_prop":91.9,"falta_prop":46.9,"falta_mes":773,"meta_diaria":72.6,"devendo":46.9,"dias_atraso":0.65},{"unidade":"Itapetinga","meta_mes":1097,"meta_prop":487.6,"realizado":526,"pct_prop":107.9,"falta_prop":0,"falta_mes":571,"meta_diaria":60.9,"devendo":0,"dias_atraso":0.0},{"unidade":"Jequié","meta_mes":1733,"meta_prop":770.2,"realizado":647,"pct_prop":84.0,"falta_prop":123.2,"falta_mes":1086,"meta_diaria":96.3,"devendo":123.2,"dias_atraso":1.28},{"unidade":"Livramento de Nossa Senhora","meta_mes":174,"meta_prop":77.3,"realizado":144,"pct_prop":186.2,"falta_prop":0,"falta_mes":30,"meta_diaria":9.7,"devendo":0,"dias_atraso":0.0},{"unidade":"Luís Eduardo Magalhães","meta_mes":1693,"meta_prop":752.4,"realizado":465,"pct_prop":61.8,"falta_prop":287.4,"falta_mes":1228,"meta_diaria":94.1,"devendo":287.4,"dias_atraso":3.06},{"unidade":"Santa Maria da Vitória","meta_mes":678,"meta_prop":301.3,"realizado":181,"pct_prop":60.1,"falta_prop":120.3,"falta_mes":497,"meta_diaria":37.7,"devendo":120.3,"dias_atraso":3.19},{"unidade":"Santo Amaro","meta_mes":1640,"meta_prop":728.9,"realizado":642,"pct_prop":88.1,"falta_prop":86.9,"falta_mes":998,"meta_diaria":91.1,"devendo":86.9,"dias_atraso":0.95},{"unidade":"Seabra","meta_mes":621,"meta_prop":276.0,"realizado":256,"pct_prop":92.8,"falta_prop":20.0,"falta_mes":365,"meta_diaria":34.5,"devendo":20.0,"dias_atraso":0.58},{"unidade":"Serrinha","meta_mes":1374,"meta_prop":610.7,"realizado":507,"pct_prop":83.0,"falta_prop":103.7,"falta_mes":867,"meta_diaria":76.3,"devendo":103.7,"dias_atraso":1.36},{"unidade":"Vitória da Conquista","meta_mes":2916,"meta_prop":1296.0,"realizado":932,"pct_prop":71.9,"falta_prop":364.0,"falta_mes":1984,"meta_diaria":162.0,"devendo":364.0,"dias_atraso":2.25}],"totals":{"meta_mes":28065,"meta_prop":12473.3,"realizado":11510,"pct_prop":92.3,"falta_prop":1827.2,"falta_mes":16555,"meta_diaria":1559.2,"devendo":1827.2,"dias_atraso":1.17}},"CORTE":{"rows":[{"unidade":"Barreiras","meta_mes":1355,"meta_prop":602.2,"realizado":461,"pct_prop":76.5,"falta_prop":141.2,"falta_mes":894,"meta_diaria":75.3,"devendo":141.2,"dias_atraso":1.88},{"unidade":"Bom Jesus da Lapa","meta_mes":1040,"meta_prop":462.2,"realizado":352,"pct_prop":76.2,"falta_prop":110.2,"falta_mes":688,"meta_diaria":57.8,"devendo":110.2,"dias_atraso":1.91},{"unidade":"Brumado","meta_mes":479,"meta_prop":212.9,"realizado":132,"pct_prop":62.0,"falta_prop":80.9,"falta_mes":347,"meta_diaria":26.6,"devendo":80.9,"dias_atraso":3.04},{"unidade":"Conceição do Coité","meta_mes":497,"meta_prop":220.9,"realizado":215,"pct_prop":97.3,"falta_prop":5.9,"falta_mes":282,"meta_diaria":27.6,"devendo":5.9,"dias_atraso":0.21},{"unidade":"Feira de Santana Norte","meta_mes":1878,"meta_prop":834.7,"realizado":968,"pct_prop":116.0,"falta_prop":0,"falta_mes":910,"meta_diaria":104.3,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Sul","meta_mes":2314,"meta_prop":1028.4,"realizado":1023,"pct_prop":99.5,"falta_prop":5.4,"falta_mes":1291,"meta_diaria":128.6,"devendo":5.4,"dias_atraso":0.04},{"unidade":"Guanambi","meta_mes":1236,"meta_prop":549.3,"realizado":397,"pct_prop":72.3,"falta_prop":152.3,"falta_mes":839,"meta_diaria":68.7,"devendo":152.3,"dias_atraso":2.22},{"unidade":"Ibotirama","meta_mes":589,"meta_prop":261.8,"realizado":506,"pct_prop":193.3,"falta_prop":0,"falta_mes":83,"meta_diaria":32.7,"devendo":0,"dias_atraso":0.0},{"unidade":"Irecê","meta_mes":2063,"meta_prop":916.9,"realizado":780,"pct_prop":85.1,"falta_prop":136.9,"falta_mes":1283,"meta_diaria":114.6,"devendo":136.9,"dias_atraso":1.19},{"unidade":"Itaberaba","meta_mes":1067,"meta_prop":474.2,"realizado":417,"pct_prop":87.9,"falta_prop":57.2,"falta_mes":650,"meta_diaria":59.3,"devendo":57.2,"dias_atraso":0.97},{"unidade":"Itapetinga","meta_mes":928,"meta_prop":412.4,"realizado":389,"pct_prop":94.3,"falta_prop":23.4,"falta_mes":539,"meta_diaria":51.6,"devendo":23.4,"dias_atraso":0.45},{"unidade":"Jequié","meta_mes":1410,"meta_prop":626.7,"realizado":418,"pct_prop":66.7,"falta_prop":208.7,"falta_mes":992,"meta_diaria":78.3,"devendo":208.7,"dias_atraso":2.66},{"unidade":"Livramento de Nossa Senhora","meta_mes":142,"meta_prop":63.1,"realizado":110,"pct_prop":174.3,"falta_prop":0,"falta_mes":32,"meta_diaria":7.9,"devendo":0,"dias_atraso":0.0},{"unidade":"Luís Eduardo Magalhães","meta_mes":1423,"meta_prop":632.4,"realizado":383,"pct_prop":60.6,"falta_prop":249.4,"falta_mes":1040,"meta_diaria":79.1,"devendo":249.4,"dias_atraso":3.16},{"unidade":"Santa Maria da Vitória","meta_mes":563,"meta_prop":250.2,"realizado":163,"pct_prop":65.1,"falta_prop":87.2,"falta_mes":400,"meta_diaria":31.3,"devendo":87.2,"dias_atraso":2.79},{"unidade":"Santo Amaro","meta_mes":1191,"meta_prop":529.3,"realizado":356,"pct_prop":67.3,"falta_prop":173.3,"falta_mes":835,"meta_diaria":66.2,"devendo":173.3,"dias_atraso":2.62},{"unidade":"Seabra","meta_mes":504,"meta_prop":224.0,"realizado":216,"pct_prop":96.4,"falta_prop":8.0,"falta_mes":288,"meta_diaria":28.0,"devendo":8.0,"dias_atraso":0.29},{"unidade":"Serrinha","meta_mes":942,"meta_prop":418.7,"realizado":307,"pct_prop":73.3,"falta_prop":111.7,"falta_mes":635,"meta_diaria":52.3,"devendo":111.7,"dias_atraso":2.13},{"unidade":"Vitória da Conquista","meta_mes":2430,"meta_prop":1080.0,"realizado":683,"pct_prop":63.2,"falta_prop":397.0,"falta_mes":1747,"meta_diaria":135.0,"devendo":397.0,"dias_atraso":2.94}],"totals":{"meta_mes":22051,"meta_prop":9800.3,"realizado":8276,"pct_prop":84.4,"falta_prop":1948.7,"falta_mes":13775,"meta_diaria":1225.2,"devendo":1948.7,"dias_atraso":1.59}},"RECORTE":{"rows":[{"unidade":"Barreiras","meta_mes":240,"meta_prop":106.7,"realizado":59,"pct_prop":55.3,"falta_prop":47.7,"falta_mes":181,"meta_diaria":13.3,"devendo":47.7,"dias_atraso":3.58},{"unidade":"Bom Jesus da Lapa","meta_mes":150,"meta_prop":66.7,"realizado":113,"pct_prop":169.5,"falta_prop":0,"falta_mes":37,"meta_diaria":8.3,"devendo":0,"dias_atraso":0.0},{"unidade":"Brumado","meta_mes":66,"meta_prop":29.3,"realizado":10,"pct_prop":34.1,"falta_prop":19.3,"falta_mes":56,"meta_diaria":3.7,"devendo":19.3,"dias_atraso":5.27},{"unidade":"Conceição do Coité","meta_mes":92,"meta_prop":40.9,"realizado":87,"pct_prop":212.8,"falta_prop":0,"falta_mes":5,"meta_diaria":5.1,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Norte","meta_mes":656,"meta_prop":291.6,"realizado":400,"pct_prop":137.2,"falta_prop":0,"falta_mes":256,"meta_diaria":36.4,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Sul","meta_mes":1004,"meta_prop":446.2,"realizado":665,"pct_prop":149.0,"falta_prop":0,"falta_mes":339,"meta_diaria":55.8,"devendo":0,"dias_atraso":0.0},{"unidade":"Guanambi","meta_mes":192,"meta_prop":85.3,"realizado":120,"pct_prop":140.6,"falta_prop":0,"falta_mes":72,"meta_diaria":10.7,"devendo":0,"dias_atraso":0.0},{"unidade":"Ibotirama","meta_mes":86,"meta_prop":38.2,"realizado":152,"pct_prop":397.7,"falta_prop":0,"falta_mes":0,"meta_diaria":4.8,"devendo":0,"dias_atraso":0.0},{"unidade":"Irecê","meta_mes":342,"meta_prop":152.0,"realizado":168,"pct_prop":110.5,"falta_prop":0,"falta_mes":174,"meta_diaria":19.0,"devendo":0,"dias_atraso":0.0},{"unidade":"Itaberaba","meta_mes":183,"meta_prop":81.3,"realizado":105,"pct_prop":129.1,"falta_prop":0,"falta_mes":78,"meta_diaria":10.2,"devendo":0,"dias_atraso":0.0},{"unidade":"Itapetinga","meta_mes":136,"meta_prop":60.4,"realizado":129,"pct_prop":213.4,"falta_prop":0,"falta_mes":7,"meta_diaria":7.6,"devendo":0,"dias_atraso":0.0},{"unidade":"Jequié","meta_mes":264,"meta_prop":117.3,"realizado":217,"pct_prop":184.9,"falta_prop":0,"falta_mes":47,"meta_diaria":14.7,"devendo":0,"dias_atraso":0.0},{"unidade":"Livramento de Nossa Senhora","meta_mes":20,"meta_prop":8.9,"realizado":32,"pct_prop":360.0,"falta_prop":0,"falta_mes":0,"meta_diaria":1.1,"devendo":0,"dias_atraso":0.0},{"unidade":"Luís Eduardo Magalhães","meta_mes":234,"meta_prop":104.0,"realizado":75,"pct_prop":72.1,"falta_prop":29.0,"falta_mes":159,"meta_diaria":13.0,"devendo":29.0,"dias_atraso":2.23},{"unidade":"Santa Maria da Vitória","meta_mes":85,"meta_prop":37.8,"realizado":16,"pct_prop":42.4,"falta_prop":21.8,"falta_mes":69,"meta_diaria":4.7,"devendo":21.8,"dias_atraso":4.61},{"unidade":"Santo Amaro","meta_mes":358,"meta_prop":159.1,"realizado":283,"pct_prop":177.9,"falta_prop":0,"falta_mes":75,"meta_diaria":19.9,"devendo":0,"dias_atraso":0.0},{"unidade":"Seabra","meta_mes":77,"meta_prop":34.2,"realizado":39,"pct_prop":114.0,"falta_prop":0,"falta_mes":38,"meta_diaria":4.3,"devendo":0,"dias_atraso":0.0},{"unidade":"Serrinha","meta_mes":368,"meta_prop":163.6,"realizado":188,"pct_prop":114.9,"falta_prop":0,"falta_mes":180,"meta_diaria":20.4,"devendo":0,"dias_atraso":0.0},{"unidade":"Vitória da Conquista","meta_mes":383,"meta_prop":170.2,"realizado":230,"pct_prop":135.1,"falta_prop":0,"falta_mes":153,"meta_diaria":21.3,"devendo":0,"dias_atraso":0.0}],"totals":{"meta_mes":4936,"meta_prop":2193.7,"realizado":3088,"pct_prop":140.8,"falta_prop":117.8,"falta_mes":1926,"meta_diaria":274.3,"devendo":117.8,"dias_atraso":0.43}},"BAIXA":{"rows":[{"unidade":"Barreiras","meta_mes":31,"meta_prop":13.8,"realizado":6,"pct_prop":43.5,"falta_prop":7.8,"falta_mes":25,"meta_diaria":1.7,"devendo":7.8,"dias_atraso":4.52},{"unidade":"Bom Jesus da Lapa","meta_mes":67,"meta_prop":29.8,"realizado":10,"pct_prop":33.6,"falta_prop":19.8,"falta_mes":57,"meta_diaria":3.7,"devendo":19.8,"dias_atraso":5.31},{"unidade":"Brumado","meta_mes":29,"meta_prop":12.9,"realizado":5,"pct_prop":38.8,"falta_prop":7.9,"falta_mes":24,"meta_diaria":1.6,"devendo":7.9,"dias_atraso":4.9},{"unidade":"Conceição do Coité","meta_mes":34,"meta_prop":15.1,"realizado":5,"pct_prop":33.1,"falta_prop":10.1,"falta_mes":29,"meta_diaria":1.9,"devendo":10.1,"dias_atraso":5.35},{"unidade":"Feira de Santana Norte","meta_mes":115,"meta_prop":51.1,"realizado":19,"pct_prop":37.2,"falta_prop":32.1,"falta_mes":96,"meta_diaria":6.4,"devendo":32.1,"dias_atraso":5.03},{"unidade":"Feira de Santana Sul","meta_mes":99,"meta_prop":44.0,"realizado":6,"pct_prop":13.6,"falta_prop":38.0,"falta_mes":93,"meta_diaria":5.5,"devendo":38.0,"dias_atraso":6.91},{"unidade":"Guanambi","meta_mes":40,"meta_prop":17.8,"realizado":5,"pct_prop":28.1,"falta_prop":12.8,"falta_mes":35,"meta_diaria":2.2,"devendo":12.8,"dias_atraso":5.75},{"unidade":"Ibotirama","meta_mes":57,"meta_prop":25.3,"realizado":11,"pct_prop":43.4,"falta_prop":14.3,"falta_mes":46,"meta_diaria":3.2,"devendo":14.3,"dias_atraso":4.53},{"unidade":"Irecê","meta_mes":81,"meta_prop":36.0,"realizado":1,"pct_prop":2.8,"falta_prop":35.0,"falta_mes":80,"meta_diaria":4.5,"devendo":35.0,"dias_atraso":7.78},{"unidade":"Itaberaba","meta_mes":57,"meta_prop":25.3,"realizado":12,"pct_prop":47.4,"falta_prop":13.3,"falta_mes":45,"meta_diaria":3.2,"devendo":13.3,"dias_atraso":4.21},{"unidade":"Itapetinga","meta_mes":33,"meta_prop":14.7,"realizado":8,"pct_prop":54.5,"falta_prop":6.7,"falta_mes":25,"meta_diaria":1.8,"devendo":6.7,"dias_atraso":3.64},{"unidade":"Jequié","meta_mes":59,"meta_prop":26.2,"realizado":12,"pct_prop":45.8,"falta_prop":14.2,"falta_mes":47,"meta_diaria":3.3,"devendo":14.2,"dias_atraso":4.34},{"unidade":"Livramento de Nossa Senhora","meta_mes":12,"meta_prop":5.3,"realizado":2,"pct_prop":37.5,"falta_prop":3.3,"falta_mes":10,"meta_diaria":0.7,"devendo":3.3,"dias_atraso":5.0},{"unidade":"Luís Eduardo Magalhães","meta_mes":36,"meta_prop":16.0,"realizado":7,"pct_prop":43.8,"falta_prop":9.0,"falta_mes":29,"meta_diaria":2.0,"devendo":9.0,"dias_atraso":4.5},{"unidade":"Santa Maria da Vitória","meta_mes":30,"meta_prop":13.3,"realizado":2,"pct_prop":15.0,"falta_prop":11.3,"falta_mes":28,"meta_diaria":1.7,"devendo":11.3,"dias_atraso":6.8},{"unidade":"Santo Amaro","meta_mes":91,"meta_prop":40.4,"realizado":3,"pct_prop":7.4,"falta_prop":37.4,"falta_mes":88,"meta_diaria":5.1,"devendo":37.4,"dias_atraso":7.41},{"unidade":"Seabra","meta_mes":40,"meta_prop":17.8,"realizado":1,"pct_prop":5.6,"falta_prop":16.8,"falta_mes":39,"meta_diaria":2.2,"devendo":16.8,"dias_atraso":7.55},{"unidade":"Serrinha","meta_mes":64,"meta_prop":28.4,"realizado":12,"pct_prop":42.2,"falta_prop":16.4,"falta_mes":52,"meta_diaria":3.6,"devendo":16.4,"dias_atraso":4.62},{"unidade":"Vitória da Conquista","meta_mes":103,"meta_prop":45.8,"realizado":19,"pct_prop":41.5,"falta_prop":26.8,"falta_mes":84,"meta_diaria":5.7,"devendo":26.8,"dias_atraso":4.68}],"totals":{"meta_mes":1078,"meta_prop":479.0,"realizado":146,"pct_prop":30.5,"falta_prop":333.0,"falta_mes":932,"meta_diaria":60.0,"devendo":333.0,"dias_atraso":5.55}}}};
 
-  function fmt(n) { return n.toLocaleString('pt-BR'); }
+  var CAT_META = {
+    TOTAL:   { label: 'Total',   sub: 'corte + recorte + baixa', unitLabel: 'serviços' },
+    CORTE:   { label: 'Corte',   sub: 'cortes',                  unitLabel: 'cortes' },
+    RECORTE: { label: 'Recorte', sub: 'recortes',                unitLabel: 'recortes' },
+    BAIXA:   { label: 'Baixa',   sub: 'baixas',                  unitLabel: 'baixas' }
+  };
+  var CAT_ORDER = ['TOTAL', 'CORTE', 'RECORTE', 'BAIXA'];
+  var currentCat = 'TOTAL';
+
+  function fmt(n) { return Math.round(n).toLocaleString('pt-BR'); }
   function fmt1(n) { return n.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}); }
   function tier(pct) { return pct >= 100 ? 'good' : (pct >= 60 ? 'warning' : 'critical'); }
-
-  var scaleMax = Math.max.apply(null, DATA.with_meta.map(function (d) { return Math.max(d.meta_prop, d.realizado); })) * 1.04;
-
-  // ---- stat tiles ----
-  var stats = [
-    { label: 'Meta proporcional (até hoje)', value: fmt1(DATA.totals.meta_prop), sub: DATA.elapsed_days + ' de ' + DATA.total_days + ' dias seg-qui · meta do mês: ' + fmt(DATA.totals.meta_mes) },
-    { label: 'Realizado', value: fmt(DATA.totals.realizado), sub: 'cortes concluídos', accent: true },
-    { label: 'Atingimento (proporcional)', value: fmt1(DATA.totals.pct_prop) + '%', sub: 'vs. meta até hoje' },
-    { label: 'Faltam (proporcional)', value: fmt1(DATA.totals.falta_prop), sub: 'para ficar em dia com hoje' }
-  ];
-  var statRow = document.getElementById('stat-row');
-  stats.forEach(function (s) {
-    var el = document.createElement('div');
-    el.className = 'stat';
-    el.innerHTML = '<span class="label">' + s.label + '</span>' +
-      '<span class="value mono' + (s.accent ? ' accent' : '') + '">' + s.value + '</span>' +
-      '<span class="sub">' + s.sub + '</span>';
-    statRow.appendChild(el);
-  });
+  function paceTier(diasAtraso) { return diasAtraso <= 0 ? 'good' : (diasAtraso < 3 ? 'warning' : 'critical'); }
 
   var tooltip = document.getElementById('tooltip');
   function showTooltip(e, html) {
@@ -330,121 +274,160 @@
   }
   function hideTooltip() { tooltip.classList.remove('show'); }
 
-  // ---- main bullet rows ----
-  var mainRows = document.getElementById('main-rows');
-  DATA.with_meta.forEach(function (d) {
-    var t = tier(d.pct_prop);
-    var barPct = Math.min((d.realizado / scaleMax) * 100, 100);
-    var tickPct = (d.meta_prop / scaleMax) * 100;
-    var row = document.createElement('div');
-    row.className = 'row';
-    row.innerHTML =
-      '<div class="row-label"><span class="status-dot tier-' + t + '"></span><span class="unit-name">' + d.unidade + '</span></div>' +
-      '<div class="row-track">' +
-        '<div class="bar" style="width:' + barPct + '%"></div>' +
-        '<div class="target-tick" style="left:' + tickPct + '%"></div>' +
-      '</div>' +
-      '<div class="row-numbers mono"><span class="pct">' + fmt1(d.pct_prop) + '%</span></div>';
-    var track = row.querySelector('.row-track');
-    track.addEventListener('mouseenter', function (e) {
-      showTooltip(e,
-        '<div class="tt-title">' + d.unidade + '</div>' +
-        '<div class="tt-row"><span>Realizado</span><b>' + fmt(d.realizado) + '</b></div>' +
-        '<div class="tt-row"><span>Meta proporcional</span><b>' + fmt1(d.meta_prop) + '</b></div>' +
-        '<div class="tt-row"><span>Meta do mês</span><b>' + fmt(d.meta_mes) + '</b></div>' +
-        '<div class="tt-row"><span>Falta (prop.)</span><b>' + fmt1(d.falta_prop) + '</b></div>' +
-        '<div class="tt-row"><span>Atingimento</span><b>' + fmt1(d.pct_prop) + '%</b></div>'
-      );
+  function clearChildren(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+  function renderStatRow(el, stats) {
+    clearChildren(el);
+    stats.forEach(function (s) {
+      var d = document.createElement('div');
+      d.className = 'stat';
+      d.innerHTML = '<span class="label">' + s.label + '</span>' +
+        '<span class="value mono' + (s.accent ? ' accent' : '') + '">' + s.value + '</span>' +
+        '<span class="sub">' + s.sub + '</span>';
+      el.appendChild(d);
     });
-    track.addEventListener('mousemove', moveTooltip);
-    track.addEventListener('mouseleave', hideTooltip);
-    mainRows.appendChild(row);
-  });
+  }
 
-  // ---- table view ----
-  var tbody = document.querySelector('#main-table tbody');
-  DATA.with_meta.slice().sort(function (a, b) { return b.meta_mes - a.meta_mes; }).forEach(function (d) {
-    var tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + d.unidade + '</td><td>' + fmt(d.meta_mes) + '</td><td>' + fmt1(d.meta_prop) + '</td><td>' + fmt(d.realizado) + '</td><td>' + fmt1(d.falta_prop) + '</td><td>' + fmt1(d.pct_prop) + '%</td>';
-    tbody.appendChild(tr);
-  });
-  document.querySelector('#main-table tfoot').innerHTML =
-    '<tr><td>Total</td><td>' + fmt(DATA.totals.meta_mes) + '</td><td>' + fmt1(DATA.totals.meta_prop) + '</td><td>' + fmt(DATA.totals.realizado) + '</td><td>' + fmt1(DATA.totals.falta_prop) + '</td><td>' + fmt1(DATA.totals.pct_prop) + '%</td></tr>';
-
-  // ---- pace / deficit stat tiles ----
-  var paceStats = [
-    { label: 'Falta p/ meta do mês', value: fmt(DATA.pace_totals.falta_mes), sub: '14 unidades · até 30/09' },
-    { label: 'Meta diária total', value: fmt1(DATA.pace_totals.meta_diaria), sub: 'cortes por dia útil (seg-qui)', accent: true },
-    { label: 'Devendo (soma)', value: fmt1(DATA.pace_totals.devendo), sub: 'déficit acumulado vs. diário' },
-    { label: 'Atraso médio', value: fmt1(DATA.pace_totals.dias_atraso) + ' dias', sub: 'ponderado pela meta diária' }
-  ];
-  var paceStatRow = document.getElementById('pace-stat-row');
-  paceStats.forEach(function (s) {
-    var el = document.createElement('div');
-    el.className = 'stat';
-    el.innerHTML = '<span class="label">' + s.label + '</span>' +
-      '<span class="value mono' + (s.accent ? ' accent' : '') + '">' + s.value + '</span>' +
-      '<span class="sub">' + s.sub + '</span>';
-    paceStatRow.appendChild(el);
-  });
-
-  // ---- pace / deficit bar rows ----
-  function paceTier(diasAtraso) { return diasAtraso <= 0 ? 'good' : (diasAtraso < 3 ? 'warning' : 'critical'); }
-  var paceSorted = DATA.pace.slice().sort(function (a, b) { return b.devendo - a.devendo; });
-  var paceMax = Math.max.apply(null, DATA.pace.map(function (d) { return d.devendo; })) * 1.06;
-  var paceRows = document.getElementById('pace-rows');
-  paceSorted.forEach(function (d) {
-    var t = paceTier(d.dias_atraso);
-    var barPct = paceMax ? (d.devendo / paceMax) * 100 : 0;
-    var row = document.createElement('div');
-    row.className = 'row';
-    row.innerHTML =
-      '<div class="row-label"><span class="status-dot tier-' + t + '"></span><span class="unit-name">' + d.unidade + '</span></div>' +
-      '<div class="row-track"><div class="bar" style="width:' + barPct + '%"></div></div>' +
-      '<div class="row-numbers mono"><span class="pct">' + fmt1(d.devendo) + '</span><span class="numsub">' + (d.dias_atraso > 0 ? fmt1(d.dias_atraso) + ' dias atraso' : 'em dia') + '</span></div>';
-    var track = row.querySelector('.row-track');
-    track.addEventListener('mouseenter', function (e) {
-      showTooltip(e,
-        '<div class="tt-title">' + d.unidade + '</div>' +
-        '<div class="tt-row"><span>Falta p/ meta do mês</span><b>' + fmt(d.falta_mes) + '</b></div>' +
-        '<div class="tt-row"><span>Meta diária (seg-qui)</span><b>' + fmt1(d.meta_diaria) + '</b></div>' +
-        '<div class="tt-row"><span>Devendo até hoje</span><b>' + fmt1(d.devendo) + '</b></div>' +
-        '<div class="tt-row"><span>Dias de atraso</span><b>' + (d.dias_atraso > 0 ? fmt1(d.dias_atraso) : '0 (em dia)') + '</b></div>'
-      );
+  // ---- tabs ----
+  var tabsEl = document.getElementById('tabs');
+  CAT_ORDER.forEach(function (cat) {
+    var meta = CAT_META[cat];
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn' + (cat === currentCat ? ' active' : '');
+    btn.dataset.cat = cat;
+    btn.innerHTML = meta.label + '<span class="tab-sub">' + meta.sub + '</span>';
+    btn.addEventListener('click', function () {
+      currentCat = cat;
+      Array.prototype.forEach.call(tabsEl.querySelectorAll('.tab-btn'), function (b) {
+        b.classList.toggle('active', b.dataset.cat === cat);
+      });
+      render();
     });
-    track.addEventListener('mousemove', moveTooltip);
-    track.addEventListener('mouseleave', hideTooltip);
-    paceRows.appendChild(row);
+    tabsEl.appendChild(btn);
   });
 
-  var paceTbody = document.querySelector('#pace-table tbody');
-  paceSorted.forEach(function (d) {
-    var tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + d.unidade + '</td><td>' + fmt(d.falta_mes) + '</td><td>' + fmt1(d.meta_diaria) + '</td><td>' + fmt1(d.devendo) + '</td><td>' + (d.dias_atraso > 0 ? fmt1(d.dias_atraso) : '—') + '</td>';
-    paceTbody.appendChild(tr);
-  });
-  document.querySelector('#pace-table tfoot').innerHTML =
-    '<tr><td>Total</td><td>' + fmt(DATA.pace_totals.falta_mes) + '</td><td>' + fmt1(DATA.pace_totals.meta_diaria) + '</td><td>' + fmt1(DATA.pace_totals.devendo) + '</td><td>' + fmt1(DATA.pace_totals.dias_atraso) + '</td></tr>';
+  function render() {
+    var cat = currentCat;
+    var meta = CAT_META[cat];
+    var d = DATA.dataset[cat];
+    var rows = d.rows;
+    var totals = d.totals;
 
-  // ---- extra (no-meta) rows ----
-  var extraMax = Math.max.apply(null, DATA.without_meta.map(function (d) { return d.realizado; })) * 1.04;
-  var extraRows = document.getElementById('extra-rows');
-  DATA.without_meta.forEach(function (d) {
-    var barPct = (d.realizado / extraMax) * 100;
-    var row = document.createElement('div');
-    row.className = 'row';
-    row.innerHTML =
-      '<div class="row-label"><span class="unit-name">' + d.unidade + '</span></div>' +
-      '<div class="row-track"><div class="bar" style="width:' + barPct + '%"></div></div>' +
-      '<div class="row-numbers mono">' + fmt(d.realizado) + '</div>';
-    var track = row.querySelector('.row-track');
-    track.addEventListener('mouseenter', function (e) {
-      showTooltip(e, '<div class="tt-title">' + d.unidade + '</div><div class="tt-row"><span>Realizado</span><b>' + fmt(d.realizado) + '</b></div><div class="tt-row"><span>Meta</span><b>sem meta cadastrada</b></div>');
+    document.getElementById('subtitle').textContent =
+      'Serviços concluídos (aba "Executados") comparados à meta cadastrada, proporcionalizada até hoje — apenas dias úteis de segunda a quinta (sexta, sábado e domingo não têm meta). Categoria: ' + meta.label + '. Dados até ' + DATA.as_of.split('-').reverse().join('/') + '.';
+
+    var nUnits = rows.length;
+
+    // ---- main stat tiles ----
+    renderStatRow(document.getElementById('stat-row'), [
+      { label: 'Meta proporcional (até hoje)', value: fmt1(totals.meta_prop), sub: DATA.elapsed_days + ' de ' + DATA.total_days + ' dias seg-qui · meta do mês: ' + fmt(totals.meta_mes) },
+      { label: 'Realizado', value: fmt(totals.realizado), sub: meta.unitLabel + ' concluídos', accent: true },
+      { label: 'Atingimento (proporcional)', value: fmt1(totals.pct_prop) + '%', sub: 'vs. meta até hoje' },
+      { label: 'Faltam (proporcional)', value: fmt1(totals.falta_prop), sub: 'para ficar em dia com hoje' }
+    ]);
+
+    document.getElementById('main-note').textContent = nUnits + ' unidades · ordenado por % de atingimento da meta proporcional';
+
+    var scaleMax = Math.max.apply(null, rows.map(function (r) { return Math.max(r.meta_prop, r.realizado); })) * 1.04;
+    var mainSorted = rows.slice().sort(function (a, b) { return a.pct_prop - b.pct_prop; });
+
+    var mainRows = document.getElementById('main-rows');
+    clearChildren(mainRows);
+    mainSorted.forEach(function (r) {
+      var t = tier(r.pct_prop);
+      var barPct = Math.min((r.realizado / scaleMax) * 100, 100);
+      var tickPct = Math.min((r.meta_prop / scaleMax) * 100, 100);
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML =
+        '<div class="row-label"><span class="status-dot tier-' + t + '"></span><span class="unit-name">' + r.unidade + '</span></div>' +
+        '<div class="row-track">' +
+          '<div class="bar" style="width:' + barPct + '%"></div>' +
+          '<div class="target-tick" style="left:' + tickPct + '%"></div>' +
+        '</div>' +
+        '<div class="row-numbers mono"><span class="pct">' + fmt1(r.pct_prop) + '%</span></div>';
+      var track = row.querySelector('.row-track');
+      track.addEventListener('mouseenter', function (e) {
+        showTooltip(e,
+          '<div class="tt-title">' + r.unidade + '</div>' +
+          '<div class="tt-row"><span>Realizado</span><b>' + fmt(r.realizado) + '</b></div>' +
+          '<div class="tt-row"><span>Meta proporcional</span><b>' + fmt1(r.meta_prop) + '</b></div>' +
+          '<div class="tt-row"><span>Meta do mês</span><b>' + fmt(r.meta_mes) + '</b></div>' +
+          '<div class="tt-row"><span>Falta (prop.)</span><b>' + fmt1(r.falta_prop) + '</b></div>' +
+          '<div class="tt-row"><span>Atingimento</span><b>' + fmt1(r.pct_prop) + '%</b></div>'
+        );
+      });
+      track.addEventListener('mousemove', moveTooltip);
+      track.addEventListener('mouseleave', hideTooltip);
+      mainRows.appendChild(row);
     });
-    track.addEventListener('mousemove', moveTooltip);
-    track.addEventListener('mouseleave', hideTooltip);
-    extraRows.appendChild(row);
-  });
+
+    // ---- table view ----
+    var tbody = document.querySelector('#main-table tbody');
+    clearChildren(tbody);
+    rows.slice().sort(function (a, b) { return b.meta_mes - a.meta_mes; }).forEach(function (r) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + r.unidade + '</td><td>' + fmt(r.meta_mes) + '</td><td>' + fmt1(r.meta_prop) + '</td><td>' + fmt(r.realizado) + '</td><td>' + fmt1(r.falta_prop) + '</td><td>' + fmt1(r.pct_prop) + '%</td>';
+      tbody.appendChild(tr);
+    });
+    document.querySelector('#main-table tfoot').innerHTML =
+      '<tr><td>Total</td><td>' + fmt(totals.meta_mes) + '</td><td>' + fmt1(totals.meta_prop) + '</td><td>' + fmt(totals.realizado) + '</td><td>' + fmt1(totals.falta_prop) + '</td><td>' + fmt1(totals.pct_prop) + '%</td></tr>';
+
+    // ---- pace stat tiles ----
+    document.getElementById('pace-note').textContent = nUnits + ' unidades · ordenado por quanto está devendo em relação ao diário';
+    renderStatRow(document.getElementById('pace-stat-row'), [
+      { label: 'Falta p/ meta do mês', value: fmt(totals.falta_mes), sub: nUnits + ' unidades · até 30/09' },
+      { label: 'Meta diária total', value: fmt1(totals.meta_diaria), sub: meta.unitLabel + ' por dia útil (seg-qui)', accent: true },
+      { label: 'Devendo (soma)', value: fmt1(totals.devendo), sub: 'déficit acumulado vs. diário' },
+      { label: 'Atraso médio', value: fmt1(totals.dias_atraso) + ' dias', sub: 'ponderado pela meta diária' }
+    ]);
+
+    var paceSorted = rows.slice().sort(function (a, b) { return b.devendo - a.devendo; });
+    var paceMax = Math.max.apply(null, rows.map(function (r) { return r.devendo; })) * 1.06;
+    var paceRows = document.getElementById('pace-rows');
+    clearChildren(paceRows);
+    paceSorted.forEach(function (r) {
+      var t = paceTier(r.dias_atraso);
+      var barPct = paceMax ? (r.devendo / paceMax) * 100 : 0;
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML =
+        '<div class="row-label"><span class="status-dot tier-' + t + '"></span><span class="unit-name">' + r.unidade + '</span></div>' +
+        '<div class="row-track"><div class="bar" style="width:' + barPct + '%"></div></div>' +
+        '<div class="row-numbers mono"><span class="pct">' + fmt1(r.devendo) + '</span><span class="numsub">' + (r.dias_atraso > 0 ? fmt1(r.dias_atraso) + ' dias atraso' : 'em dia') + '</span></div>';
+      var track = row.querySelector('.row-track');
+      track.addEventListener('mouseenter', function (e) {
+        showTooltip(e,
+          '<div class="tt-title">' + r.unidade + '</div>' +
+          '<div class="tt-row"><span>Falta p/ meta do mês</span><b>' + fmt(r.falta_mes) + '</b></div>' +
+          '<div class="tt-row"><span>Meta diária (seg-qui)</span><b>' + fmt1(r.meta_diaria) + '</b></div>' +
+          '<div class="tt-row"><span>Devendo até hoje</span><b>' + fmt1(r.devendo) + '</b></div>' +
+          '<div class="tt-row"><span>Dias de atraso</span><b>' + (r.dias_atraso > 0 ? fmt1(r.dias_atraso) : '0 (em dia)') + '</b></div>'
+        );
+      });
+      track.addEventListener('mousemove', moveTooltip);
+      track.addEventListener('mouseleave', hideTooltip);
+      paceRows.appendChild(row);
+    });
+
+    var paceTbody = document.querySelector('#pace-table tbody');
+    clearChildren(paceTbody);
+    paceSorted.forEach(function (r) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + r.unidade + '</td><td>' + fmt(r.falta_mes) + '</td><td>' + fmt1(r.meta_diaria) + '</td><td>' + fmt1(r.devendo) + '</td><td>' + (r.dias_atraso > 0 ? fmt1(r.dias_atraso) : '—') + '</td>';
+      paceTbody.appendChild(tr);
+    });
+    document.querySelector('#pace-table tfoot').innerHTML =
+      '<tr><td>Total</td><td>' + fmt(totals.falta_mes) + '</td><td>' + fmt1(totals.meta_diaria) + '</td><td>' + fmt1(totals.devendo) + '</td><td>' + fmt1(totals.dias_atraso) + '</td></tr>';
+
+    document.getElementById('footnote').innerHTML =
+      'Categoria selecionada: <b>' + meta.label + '</b> (' + meta.sub + '). Total = soma de corte + recorte + baixa, por unidade. Todas as 19 unidades têm meta cadastrada nesta base.<br>' +
+      'Meta proporcional = meta do mês × (dias úteis seg-qui decorridos até hoje ÷ dias úteis seg-qui do mês inteiro). Setembro/2026 tem ' + DATA.total_days + ' dias entre segunda e quinta; até ' + DATA.as_of.split('-').reverse().join('/') + ' já se passaram ' + DATA.elapsed_days + ' desses dias. Sexta, sábado e domingo não entram na conta, nem como dia decorrido nem como dia de meta.<br>' +
+      'Meta diária = meta do mês ÷ ' + DATA.total_days + ' dias úteis (seg-qui) de setembro/2026. Devendo = (meta diária × ' + DATA.elapsed_days + ' dias já decorridos) − realizado, ou seja, o déficit de cada unidade contra o ritmo que deveria ter mantido até hoje. Dias de atraso = devendo ÷ meta diária.';
+  }
+
+  render();
 })();
 </script>
 </body>
