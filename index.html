@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Cortes</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --page:        #f6f5f1;
+    --surface:     #ffffff;
+    --surface-2:   #fbfaf7;
+    --border:      rgba(20,19,14,0.10);
+    --border-2:    rgba(20,19,14,0.16);
+    --text-1:      #17160f;
+    --text-2:      #5c5a51;
+    --text-muted:  #8a8779;
+    --accent:      #2a78d6;
+    --accent-soft: rgba(42,120,214,0.14);
+    --tick:        #a8a495;
+    --good:        #0ca30c;
+    --warning:     #d98a00;
+    --critical:    #d03b3b;
+    --track:       #edece6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --page:        #0f0f0d;
+      --surface:     #1a1a17;
+      --surface-2:   #171714;
+      --border:      rgba(255,255,255,0.10);
+      --border-2:    rgba(255,255,255,0.16);
+      --text-1:      #f5f4ef;
+      --text-2:      #c4c1b4;
+      --text-muted:  #8f8c7e;
+      --accent:      #3987e5;
+      --accent-soft: rgba(57,135,229,0.20);
+      --tick:        #5c5a4f;
+      --good:        #16b816;
+      --warning:     #e8a53a;
+      --critical:    #e66767;
+      --track:       #232320;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --page:        #0f0f0d;
+    --surface:     #1a1a17;
+    --surface-2:   #171714;
+    --border:      rgba(255,255,255,0.10);
+    --border-2:    rgba(255,255,255,0.16);
+    --text-1:      #f5f4ef;
+    --text-2:      #c4c1b4;
+    --text-muted:  #8f8c7e;
+    --accent:      #3987e5;
+    --accent-soft: rgba(57,135,229,0.20);
+    --tick:        #5c5a4f;
+    --good:        #16b816;
+    --warning:     #e8a53a;
+    --critical:    #e66767;
+    --track:       #232320;
+  }
+
+  .viz-root * { box-sizing: border-box; }
+  .viz-root {
+    background: var(--page);
+    color: var(--text-1);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 28px 20px 56px;
+    min-height: 100%;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  header.page-head { display: flex; flex-direction: column; gap: 4px; padding-bottom: 4px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 700; text-wrap: balance; }
+  .subtitle { color: var(--text-2); font-size: 14px; margin: 0; max-width: 65ch; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 640px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .stat .label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  .stat .value { font-size: 22px; font-weight: 700; }
+  .stat .value.accent { color: var(--accent); }
+  .stat .sub { font-size: 12px; color: var(--text-2); }
+
+  section.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 8px; }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .panel-title { font-size: 15px; font-weight: 700; margin: 0; }
+  .panel-note { font-size: 12px; color: var(--text-muted); }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); margin: 6px 0 14px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--accent); }
+  .legend-tick { width: 2px; height: 12px; background: var(--tick); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .rows { display: flex; flex-direction: column; }
+  .row { display: grid; grid-template-columns: 190px 1fr 92px; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--border); position: relative; }
+  .row:first-child { border-top: none; }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 1fr; gap: 4px; padding: 10px 0; }
+    .row .row-numbers { order: 3; text-align: left; }
+  }
+
+  .row-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .tier-critical { background: var(--critical); }
+  .tier-warning { background: var(--warning); }
+  .tier-good { background: var(--good); }
+  .unit-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .row-track { position: relative; height: 22px; background: var(--track); border-radius: 4px; overflow: visible; }
+  .bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); cursor: default; }
+  .target-tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tick); }
+  .row-track:hover .bar { filter: brightness(1.08); }
+
+  .row-numbers { font-size: 12px; text-align: right; color: var(--text-2); white-space: nowrap; }
+  .row-numbers .pct { font-weight: 700; color: var(--text-1); }
+  .row-numbers .numsub { display: block; font-size: 10.5px; color: var(--text-muted); font-weight: 400; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: var(--text-1); color: var(--page);
+    font-size: 12px; line-height: 1.5; border-radius: 8px; padding: 8px 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+    opacity: 0; transform: translateY(4px); transition: opacity 120ms ease, transform 120ms ease;
+    max-width: 240px;
+  }
+  .tooltip.show { opacity: 1; transform: translateY(0); }
+  .tooltip b { font-weight: 700; }
+  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; }
+  .tooltip .tt-title { font-weight: 700; margin-bottom: 4px; }
+
+  .extra-rows .row { grid-template-columns: 190px 1fr 76px; }
+  .extra-rows .bar { background: var(--text-muted); opacity: 0.85; }
+
+  details.table-toggle { margin: 14px 0 4px; }
+  summary { cursor: pointer; font-size: 12px; color: var(--accent); font-weight: 600; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary:before { content: "▸ "; }
+  details[open] summary:before { content: "▾ "; }
+  .table-wrap { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 10.5px; }
+  tfoot td { font-weight: 700; border-top: 1px solid var(--border-2); border-bottom: none; }
+
+  footer.note { font-size: 12px; color: var(--text-muted); padding: 4px 2px 0; line-height: 1.6; }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+</head>
+<body>
+<div class="viz-root">
+  <div class="wrap">
+
+    <header class="page-head">
+      <span class="eyebrow">Sirtec Inovação · Consulta de serviços SIR357074</span>
+      <h1>Cortes realizados vs. meta proporcional, por unidade</h1>
+      <p class="subtitle">Contagem de serviços de corte concluídos (aba 1) comparada à meta de CORTE (aba 2) proporcionalizada até hoje, considerando apenas dias úteis de segunda a quinta (sexta, sábado e domingo não têm meta). Atualizado em 14/09/2026.</p>
+    </header>
+
+    <div class="stat-row" id="stat-row"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Unidades com meta cadastrada</h2>
+        <span class="panel-note">14 unidades · ordenado por % de atingimento da meta proporcional</span>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-swatch"></span> Realizado</span>
+        <span class="legend-item"><span class="legend-tick"></span> Meta proporcional (até hoje)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--critical)"></span> &lt; 60%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--warning)"></span> 60–100%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--good)"></span> ≥ 100%</span>
+      </div>
+      <div class="rows" id="main-rows"></div>
+
+      <details class="table-toggle">
+        <summary>Ver como tabela</summary>
+        <div class="table-wrap">
+          <table id="main-table" class="mono">
+            <thead><tr><th>Unidade</th><th>Meta do mês</th><th>Meta proporcional</th><th>Realizado</th><th>Falta (prop.)</th><th>%</th></tr></thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Ritmo diário e déficit acumulado</h2>
+        <span class="panel-note">14 unidades · ordenado por quanto está devendo em relação ao diário</span>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--accent)"></span> Devendo (cortes)</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--good)"></span> em dia</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--warning)"></span> até 3 dias de atraso</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--critical)"></span> 3+ dias de atraso</span>
+      </div>
+      <div class="stat-row" id="pace-stat-row" style="margin-bottom:14px;"></div>
+      <div class="rows" id="pace-rows"></div>
+
+      <details class="table-toggle">
+        <summary>Ver como tabela</summary>
+        <div class="table-wrap">
+          <table id="pace-table" class="mono">
+            <thead><tr><th>Unidade</th><th>Falta (mês)</th><th>Meta diária</th><th>Devendo</th><th>Dias de atraso</th></tr></thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Unidades sem meta cadastrada na aba 2</h2>
+        <span class="panel-note">5 unidades · cortes realizados, sem meta para comparar</span>
+      </div>
+      <div class="rows extra-rows" id="extra-rows"></div>
+    </section>
+
+    <footer class="note">
+      Cortes = serviços concluídos nos tipos CORTE C, CORTE TOP25, CORTE B e CORTE A (todas as linhas da aba 1 já estão como "Concluído"). Linhas de BAIXA e RECORTE da aba de metas foram desconsideradas, conforme solicitado.<br>
+      Meta proporcional = meta do mês × (dias úteis seg-qui decorridos até hoje ÷ dias úteis seg-qui do mês inteiro). Setembro/2026 tem 18 dias entre segunda e quinta; até 14/09 (incluindo hoje) já se passaram 8 desses dias — fração de 44,4%. Sexta, sábado e domingo não entram na conta, nem como dia decorrido nem como dia de meta.<br>
+      Feira Sul, Feira Norte, Santo Amaro, Serrinha e Conceição do Coité aparecem na aba 1 mas não têm meta cadastrada na aba 2 — vale confirmar se pertencem a outro contrato ou se a meta está em outra fonte.<br>
+      Meta diária = meta do mês ÷ 18 dias úteis (seg-qui) de setembro/2026. Devendo = (meta diária × 8 dias já decorridos) − realizado, ou seja, o déficit de cada unidade contra o ritmo que ela deveria ter mantido até hoje. Dias de atraso = devendo ÷ meta diária.
+    </footer>
+
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function () {
+  var DATA = {
+    elapsed_days: 8,
+    total_days: 18,
+    frac: 0.4444,
+    with_meta: [
+      {"unidade": "Jequié", "meta_mes": 1410, "meta_prop": 626.7, "realizado": 318, "pct_prop": 50.7, "falta_prop": 308.7},
+      {"unidade": "Luís Eduardo Magalhães", "meta_mes": 1423, "meta_prop": 632.4, "realizado": 323, "pct_prop": 51.1, "falta_prop": 309.4},
+      {"unidade": "Santa Maria da Vitória", "meta_mes": 563, "meta_prop": 250.2, "realizado": 128, "pct_prop": 51.2, "falta_prop": 122.2},
+      {"unidade": "Brumado", "meta_mes": 479, "meta_prop": 212.9, "realizado": 111, "pct_prop": 52.1, "falta_prop": 101.9},
+      {"unidade": "Vitória da Conquista", "meta_mes": 2430, "meta_prop": 1080.0, "realizado": 578, "pct_prop": 53.5, "falta_prop": 502.0},
+      {"unidade": "Bom Jesus da Lapa", "meta_mes": 1040, "meta_prop": 462.2, "realizado": 289, "pct_prop": 62.5, "falta_prop": 173.2},
+      {"unidade": "Itapetinga", "meta_mes": 928, "meta_prop": 412.4, "realizado": 268, "pct_prop": 65.0, "falta_prop": 144.4},
+      {"unidade": "Barreiras", "meta_mes": 1355, "meta_prop": 602.2, "realizado": 395, "pct_prop": 65.6, "falta_prop": 207.2},
+      {"unidade": "Guanambi", "meta_mes": 1236, "meta_prop": 549.3, "realizado": 364, "pct_prop": 66.3, "falta_prop": 185.3},
+      {"unidade": "Irecê", "meta_mes": 2063, "meta_prop": 916.9, "realizado": 626, "pct_prop": 68.3, "falta_prop": 290.9},
+      {"unidade": "Itaberaba", "meta_mes": 1067, "meta_prop": 474.2, "realizado": 325, "pct_prop": 68.5, "falta_prop": 149.2},
+      {"unidade": "Seabra", "meta_mes": 504, "meta_prop": 224.0, "realizado": 166, "pct_prop": 74.1, "falta_prop": 58.0},
+      {"unidade": "Livramento de Nossa Senhora", "meta_mes": 142, "meta_prop": 63.1, "realizado": 91, "pct_prop": 144.2, "falta_prop": 0},
+      {"unidade": "Ibotirama", "meta_mes": 589, "meta_prop": 261.8, "realizado": 406, "pct_prop": 155.1, "falta_prop": 0}
+    ],
+    without_meta: [
+      {"unidade": "Feira Sul", "realizado": 863},
+      {"unidade": "Feira Norte", "realizado": 850},
+      {"unidade": "Santo Amaro", "realizado": 293},
+      {"unidade": "Serrinha", "realizado": 257},
+      {"unidade": "Conceição do Coité", "realizado": 187}
+    ],
+    totals: {"meta_mes": 15229, "meta_prop": 6768.4, "realizado": 4388, "pct_prop": 64.8, "falta_prop": 2380.4, "extra_total": 2450, "geral_total": 6838},
+    pace: [
+      {"unidade": "Vitória da Conquista", "falta_mes": 1852, "meta_diaria": 135.0, "devendo": 502.0, "dias_atraso": 3.72},
+      {"unidade": "Jequié", "falta_mes": 1092, "meta_diaria": 78.3, "devendo": 308.7, "dias_atraso": 3.94},
+      {"unidade": "Luís Eduardo Magalhães", "falta_mes": 1100, "meta_diaria": 79.1, "devendo": 309.4, "dias_atraso": 3.91},
+      {"unidade": "Irecê", "falta_mes": 1437, "meta_diaria": 114.6, "devendo": 290.9, "dias_atraso": 2.54},
+      {"unidade": "Barreiras", "falta_mes": 960, "meta_diaria": 75.3, "devendo": 207.2, "dias_atraso": 2.75},
+      {"unidade": "Guanambi", "falta_mes": 872, "meta_diaria": 68.7, "devendo": 185.3, "dias_atraso": 2.70},
+      {"unidade": "Bom Jesus da Lapa", "falta_mes": 751, "meta_diaria": 57.8, "devendo": 173.2, "dias_atraso": 3.00},
+      {"unidade": "Itaberaba", "falta_mes": 742, "meta_diaria": 59.3, "devendo": 149.2, "dias_atraso": 2.52},
+      {"unidade": "Itapetinga", "falta_mes": 660, "meta_diaria": 51.6, "devendo": 144.4, "dias_atraso": 2.80},
+      {"unidade": "Santa Maria da Vitória", "falta_mes": 435, "meta_diaria": 31.3, "devendo": 122.2, "dias_atraso": 3.91},
+      {"unidade": "Brumado", "falta_mes": 368, "meta_diaria": 26.6, "devendo": 101.9, "dias_atraso": 3.83},
+      {"unidade": "Seabra", "falta_mes": 338, "meta_diaria": 28.0, "devendo": 58.0, "dias_atraso": 2.07},
+      {"unidade": "Livramento de Nossa Senhora", "falta_mes": 51, "meta_diaria": 7.9, "devendo": 0, "dias_atraso": 0},
+      {"unidade": "Ibotirama", "falta_mes": 183, "meta_diaria": 32.7, "devendo": 0, "dias_atraso": 0}
+    ],
+    pace_totals: {"falta_mes": 10841, "meta_diaria": 846.1, "devendo": 2552.6, "dias_atraso": 3.02}
+  };
+
+  function fmt(n) { return n.toLocaleString('pt-BR'); }
+  function fmt1(n) { return n.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}); }
+  function tier(pct) { return pct >= 100 ? 'good' : (pct >= 60 ? 'warning' : 'critical'); }
+
+  var scaleMax = Math.max.apply(null, DATA.with_meta.map(function (d) { return Math.max(d.meta_prop, d.realizado); })) * 1.04;
+
+  // ---- stat tiles ----
+  var stats = [
+    { label: 'Meta proporcional (até hoje)', value: fmt1(DATA.totals.meta_prop), sub: DATA.elapsed_days + ' de ' + DATA.total_days + ' dias seg-qui · meta do mês: ' + fmt(DATA.totals.meta_mes) },
+    { label: 'Realizado', value: fmt(DATA.totals.realizado), sub: 'cortes concluídos', accent: true },
+    { label: 'Atingimento (proporcional)', value: fmt1(DATA.totals.pct_prop) + '%', sub: 'vs. meta até hoje' },
+    { label: 'Faltam (proporcional)', value: fmt1(DATA.totals.falta_prop), sub: 'para ficar em dia com hoje' }
+  ];
+  var statRow = document.getElementById('stat-row');
+  stats.forEach(function (s) {
+    var el = document.createElement('div');
+    el.className = 'stat';
+    el.innerHTML = '<span class="label">' + s.label + '</span>' +
+      '<span class="value mono' + (s.accent ? ' accent' : '') + '">' + s.value + '</span>' +
+      '<span class="sub">' + s.sub + '</span>';
+    statRow.appendChild(el);
+  });
+
+  var tooltip = document.getElementById('tooltip');
+  function showTooltip(e, html) {
+    tooltip.innerHTML = html;
+    tooltip.classList.add('show');
+    moveTooltip(e);
+  }
+  function moveTooltip(e) {
+    var x = e.clientX + 14, y = e.clientY + 14;
+    var tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+    if (x + tw > window.innerWidth - 8) x = e.clientX - tw - 14;
+    if (y + th > window.innerHeight - 8) y = e.clientY - th - 14;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+  function hideTooltip() { tooltip.classList.remove('show'); }
+
+  // ---- main bullet rows ----
+  var mainRows = document.getElementById('main-rows');
+  DATA.with_meta.forEach(function (d) {
+    var t = tier(d.pct_prop);
+    var barPct = Math.min((d.realizado / scaleMax) * 100, 100);
+    var tickPct = (d.meta_prop / scaleMax) * 100;
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      '<div class="row-label"><span class="status-dot tier-' + t + '"></span><span class="unit-name">' + d.unidade + '</span></div>' +
+      '<div class="row-track">' +
+        '<div class="bar" style="width:' + barPct + '%"></div>' +
+        '<div class="target-tick" style="left:' + tickPct + '%"></div>' +
+      '</div>' +
+      '<div class="row-numbers mono"><span class="pct">' + fmt1(d.pct_prop) + '%</span></div>';
+    var track = row.querySelector('.row-track');
+    track.addEventListener('mouseenter', function (e) {
+      showTooltip(e,
+        '<div class="tt-title">' + d.unidade + '</div>' +
+        '<div class="tt-row"><span>Realizado</span><b>' + fmt(d.realizado) + '</b></div>' +
+        '<div class="tt-row"><span>Meta proporcional</span><b>' + fmt1(d.meta_prop) + '</b></div>' +
+        '<div class="tt-row"><span>Meta do mês</span><b>' + fmt(d.meta_mes) + '</b></div>' +
+        '<div class="tt-row"><span>Falta (prop.)</span><b>' + fmt1(d.falta_prop) + '</b></div>' +
+        '<div class="tt-row"><span>Atingimento</span><b>' + fmt1(d.pct_prop) + '%</b></div>'
+      );
+    });
+    track.addEventListener('mousemove', moveTooltip);
+    track.addEventListener('mouseleave', hideTooltip);
+    mainRows.appendChild(row);
+  });
+
+  // ---- table view ----
+  var tbody = document.querySelector('#main-table tbody');
+  DATA.with_meta.slice().sort(function (a, b) { return b.meta_mes - a.meta_mes; }).forEach(function (d) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + d.unidade + '</td><td>' + fmt(d.meta_mes) + '</td><td>' + fmt1(d.meta_prop) + '</td><td>' + fmt(d.realizado) + '</td><td>' + fmt1(d.falta_prop) + '</td><td>' + fmt1(d.pct_prop) + '%</td>';
+    tbody.appendChild(tr);
+  });
+  document.querySelector('#main-table tfoot').innerHTML =
+    '<tr><td>Total</td><td>' + fmt(DATA.totals.meta_mes) + '</td><td>' + fmt1(DATA.totals.meta_prop) + '</td><td>' + fmt(DATA.totals.realizado) + '</td><td>' + fmt1(DATA.totals.falta_prop) + '</td><td>' + fmt1(DATA.totals.pct_prop) + '%</td></tr>';
+
+  // ---- pace / deficit stat tiles ----
+  var paceStats = [
+    { label: 'Falta p/ meta do mês', value: fmt(DATA.pace_totals.falta_mes), sub: '14 unidades · até 30/09' },
+    { label: 'Meta diária total', value: fmt1(DATA.pace_totals.meta_diaria), sub: 'cortes por dia útil (seg-qui)', accent: true },
+    { label: 'Devendo (soma)', value: fmt1(DATA.pace_totals.devendo), sub: 'déficit acumulado vs. diário' },
+    { label: 'Atraso médio', value: fmt1(DATA.pace_totals.dias_atraso) + ' dias', sub: 'ponderado pela meta diária' }
+  ];
+  var paceStatRow = document.getElementById('pace-stat-row');
+  paceStats.forEach(function (s) {
+    var el = document.createElement('div');
+    el.className = 'stat';
+    el.innerHTML = '<span class="label">' + s.label + '</span>' +
+      '<span class="value mono' + (s.accent ? ' accent' : '') + '">' + s.value + '</span>' +
+      '<span class="sub">' + s.sub + '</span>';
+    paceStatRow.appendChild(el);
+  });
+
+  // ---- pace / deficit bar rows ----
+  function paceTier(diasAtraso) { return diasAtraso <= 0 ? 'good' : (diasAtraso < 3 ? 'warning' : 'critical'); }
+  var paceSorted = DATA.pace.slice().sort(function (a, b) { return b.devendo - a.devendo; });
+  var paceMax = Math.max.apply(null, DATA.pace.map(function (d) { return d.devendo; })) * 1.06;
+  var paceRows = document.getElementById('pace-rows');
+  paceSorted.forEach(function (d) {
+    var t = paceTier(d.dias_atraso);
+    var barPct = paceMax ? (d.devendo / paceMax) * 100 : 0;
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      '<div class="row-label"><span class="status-dot tier-' + t + '"></span><span class="unit-name">' + d.unidade + '</span></div>' +
+      '<div class="row-track"><div class="bar" style="width:' + barPct + '%"></div></div>' +
+      '<div class="row-numbers mono"><span class="pct">' + fmt1(d.devendo) + '</span><span class="numsub">' + (d.dias_atraso > 0 ? fmt1(d.dias_atraso) + ' dias atraso' : 'em dia') + '</span></div>';
+    var track = row.querySelector('.row-track');
+    track.addEventListener('mouseenter', function (e) {
+      showTooltip(e,
+        '<div class="tt-title">' + d.unidade + '</div>' +
+        '<div class="tt-row"><span>Falta p/ meta do mês</span><b>' + fmt(d.falta_mes) + '</b></div>' +
+        '<div class="tt-row"><span>Meta diária (seg-qui)</span><b>' + fmt1(d.meta_diaria) + '</b></div>' +
+        '<div class="tt-row"><span>Devendo até hoje</span><b>' + fmt1(d.devendo) + '</b></div>' +
+        '<div class="tt-row"><span>Dias de atraso</span><b>' + (d.dias_atraso > 0 ? fmt1(d.dias_atraso) : '0 (em dia)') + '</b></div>'
+      );
+    });
+    track.addEventListener('mousemove', moveTooltip);
+    track.addEventListener('mouseleave', hideTooltip);
+    paceRows.appendChild(row);
+  });
+
+  var paceTbody = document.querySelector('#pace-table tbody');
+  paceSorted.forEach(function (d) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + d.unidade + '</td><td>' + fmt(d.falta_mes) + '</td><td>' + fmt1(d.meta_diaria) + '</td><td>' + fmt1(d.devendo) + '</td><td>' + (d.dias_atraso > 0 ? fmt1(d.dias_atraso) : '—') + '</td>';
+    paceTbody.appendChild(tr);
+  });
+  document.querySelector('#pace-table tfoot').innerHTML =
+    '<tr><td>Total</td><td>' + fmt(DATA.pace_totals.falta_mes) + '</td><td>' + fmt1(DATA.pace_totals.meta_diaria) + '</td><td>' + fmt1(DATA.pace_totals.devendo) + '</td><td>' + fmt1(DATA.pace_totals.dias_atraso) + '</td></tr>';
+
+  // ---- extra (no-meta) rows ----
+  var extraMax = Math.max.apply(null, DATA.without_meta.map(function (d) { return d.realizado; })) * 1.04;
+  var extraRows = document.getElementById('extra-rows');
+  DATA.without_meta.forEach(function (d) {
+    var barPct = (d.realizado / extraMax) * 100;
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      '<div class="row-label"><span class="unit-name">' + d.unidade + '</span></div>' +
+      '<div class="row-track"><div class="bar" style="width:' + barPct + '%"></div></div>' +
+      '<div class="row-numbers mono">' + fmt(d.realizado) + '</div>';
+    var track = row.querySelector('.row-track');
+    track.addEventListener('mouseenter', function (e) {
+      showTooltip(e, '<div class="tt-title">' + d.unidade + '</div><div class="tt-row"><span>Realizado</span><b>' + fmt(d.realizado) + '</b></div><div class="tt-row"><span>Meta</span><b>sem meta cadastrada</b></div>');
+    });
+    track.addEventListener('mousemove', moveTooltip);
+    track.addEventListener('mouseleave', hideTooltip);
+    extraRows.appendChild(row);
+  });
+})();
+</script>
+</body>
+</html>
