@@ -109,8 +109,17 @@
 
   .row-track { position: relative; height: 20px; background: var(--track); border-radius: 4px; overflow: visible; }
   .bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--bar-color, var(--accent)); cursor: default; }
+  .bar-seg { position: absolute; top: 0; bottom: 0; cursor: default; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .bar-seg:first-child { border-radius: 4px 0 0 4px; }
+  .bar-seg:last-child { border-radius: 0 4px 4px 0; }
+  .bar-seg-label { font-size: 9px; font-weight: 700; color: #06110c; white-space: nowrap; }
   .target-tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tick); }
   .row-track:hover .bar { filter: brightness(1.12); }
+  .row-track:hover .bar-seg { filter: brightness(1.12); }
+
+  .row.row-complete { background: rgba(43,212,144,0.10); box-shadow: 0 0 0 1px rgba(43,212,144,0.5) inset; border-radius: 8px; border-top-color: transparent; }
+  .row.row-complete + .row { border-top-color: transparent; }
+  .row.row-complete .unit-name { color: var(--good); }
 
   .row-numbers { font-size: 12px; text-align: right; color: var(--text-2); white-space: nowrap; }
   .row-numbers .pct { font-weight: 700; color: var(--text-1); }
@@ -290,6 +299,15 @@
   var CAT_ORDER = ['TOTAL', 'CORTE', 'RECORTE', 'BAIXA'];
   var CAT_COLOR_HEX = { CORTE: '#2bd490', RECORTE: '#ff5c66', BAIXA: '#ffc94a' };
   var currentCat = 'TOTAL';
+
+  // unidade -> { CORTE, RECORTE, BAIXA } realizado, used to draw the segmented bar on the Total view
+  var breakdownByUnit = {};
+  ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (c) {
+    DATA.dataset[c].rows.forEach(function (r) {
+      breakdownByUnit[r.unidade] = breakdownByUnit[r.unidade] || {};
+      breakdownByUnit[r.unidade][c] = r.realizado;
+    });
+  });
 
   function fmt(n) { return Math.round(n).toLocaleString('pt-BR'); }
   function fmt1(n) { return n.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}); }
@@ -483,22 +501,54 @@
     clearChildren(mainRows);
     mainSorted.forEach(function (r) {
       var t = tier(r.pct_prop);
+      var isComplete = r.pct_prop >= 100;
       var barPct = Math.min((r.realizado / scaleMax) * 100, 100);
       var tickPct = Math.min((r.meta_prop / scaleMax) * 100, 100);
       var row = document.createElement('div');
-      row.className = 'row';
+      row.className = 'row' + (isComplete ? ' row-complete' : '');
+
+      var barHtml;
+      if (cat === 'TOTAL') {
+        var bk = breakdownByUnit[r.unidade] || {};
+        var bkCorte = bk.CORTE || 0, bkRecorte = bk.RECORTE || 0, bkBaixa = bk.BAIXA || 0;
+        var bkTotal = bkCorte + bkRecorte + bkBaixa;
+        var segs = [
+          { cat: 'Corte', val: bkCorte, color: 'var(--corte)' },
+          { cat: 'Recorte', val: bkRecorte, color: 'var(--recorte)' },
+          { cat: 'Baixa', val: bkBaixa, color: 'var(--baixa)' }
+        ];
+        var leftPct = 0;
+        barHtml = segs.map(function (s) {
+          var segSharePct = bkTotal ? (s.val / bkTotal) * 100 : 0;
+          var segWidthPct = barPct * (segSharePct / 100);
+          var html = '<div class="bar-seg" style="left:' + leftPct + '%; width:' + segWidthPct + '%; background:' + s.color + '" title="' + s.cat + '">' +
+            (segWidthPct > 6 ? '<span class="bar-seg-label">' + Math.round(segSharePct) + '%</span>' : '') +
+            '</div>';
+          leftPct += segWidthPct;
+          return html;
+        }).join('');
+      } else {
+        barHtml = '<div class="bar" style="width:' + barPct + '%; --bar-color:' + meta.color + '"></div>';
+      }
+
       row.innerHTML =
         '<div class="row-label"><span class="status-dot tier-' + t + '"></span><span class="unit-name">' + r.unidade + '</span></div>' +
         '<div class="row-track">' +
-          '<div class="bar" style="width:' + barPct + '%; --bar-color:' + meta.color + '"></div>' +
+          barHtml +
           '<div class="target-tick" style="left:' + tickPct + '%"></div>' +
         '</div>' +
         '<div class="row-numbers mono"><span class="pct">' + fmt1(r.pct_prop) + '%</span></div>';
       var track = row.querySelector('.row-track');
       track.addEventListener('mouseenter', function (e) {
+        var bk = breakdownByUnit[r.unidade] || {};
+        var breakdownHtml = cat === 'TOTAL' ?
+          '<div class="tt-row"><span>Corte</span><b>' + fmt(bk.CORTE || 0) + '</b></div>' +
+          '<div class="tt-row"><span>Recorte</span><b>' + fmt(bk.RECORTE || 0) + '</b></div>' +
+          '<div class="tt-row"><span>Baixa</span><b>' + fmt(bk.BAIXA || 0) + '</b></div>' : '';
         showTooltip(e,
           '<div class="tt-title">' + r.unidade + '</div>' +
           '<div class="tt-row"><span>Realizado</span><b>' + fmt(r.realizado) + '</b></div>' +
+          breakdownHtml +
           '<div class="tt-row"><span>Meta proporcional</span><b>' + fmt1(r.meta_prop) + '</b></div>' +
           '<div class="tt-row"><span>Meta do mês</span><b>' + fmt(r.meta_mes) + '</b></div>' +
           '<div class="tt-row"><span>Falta (prop.)</span><b>' + fmt1(r.falta_prop) + '</b></div>' +
