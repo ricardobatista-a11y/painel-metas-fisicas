@@ -292,8 +292,300 @@
 <div class="tooltip" id="tooltip"></div>
 
 <script>
-(function () {
-  var DATA = {"as_of":"2026-09-15","days":{"CORTE":{"total":18,"elapsed":9,"remaining":9,"rule":"seg-qui"},"RECORTE":{"total":22,"elapsed":11,"remaining":11,"rule":"seg-sex"},"BAIXA":{"total":22,"elapsed":11,"remaining":11,"rule":"seg-sex"}},"dataset":{"CORTE":{"rows":[{"unidade":"Barreiras","meta_mes":1355,"meta_prop":677.5,"realizado":551,"pct_prop":81.3,"falta_prop":126.5,"falta_mes":804,"meta_diaria":75.3,"devendo":126.5,"dias_atraso":1.68},{"unidade":"Bom Jesus da Lapa","meta_mes":1040,"meta_prop":520.0,"realizado":396,"pct_prop":76.2,"falta_prop":124.0,"falta_mes":644,"meta_diaria":57.8,"devendo":124.0,"dias_atraso":2.15},{"unidade":"Brumado","meta_mes":479,"meta_prop":239.5,"realizado":217,"pct_prop":90.6,"falta_prop":22.5,"falta_mes":262,"meta_diaria":26.6,"devendo":22.5,"dias_atraso":0.85},{"unidade":"Conceição do Coité","meta_mes":497,"meta_prop":248.5,"realizado":241,"pct_prop":97.0,"falta_prop":7.5,"falta_mes":256,"meta_diaria":27.6,"devendo":7.5,"dias_atraso":0.27},{"unidade":"Feira de Santana Norte","meta_mes":1878,"meta_prop":939.0,"realizado":1123,"pct_prop":119.6,"falta_prop":0,"falta_mes":755,"meta_diaria":104.3,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Sul","meta_mes":2314,"meta_prop":1157.0,"realizado":1151,"pct_prop":99.5,"falta_prop":6.0,"falta_mes":1163,"meta_diaria":128.6,"devendo":6.0,"dias_atraso":0.05},{"unidade":"Guanambi","meta_mes":1236,"meta_prop":618.0,"realizado":509,"pct_prop":82.4,"falta_prop":109.0,"falta_mes":727,"meta_diaria":68.7,"devendo":109.0,"dias_atraso":1.59},{"unidade":"Ibotirama","meta_mes":589,"meta_prop":294.5,"realizado":451,"pct_prop":153.1,"falta_prop":0,"falta_mes":138,"meta_diaria":32.7,"devendo":0,"dias_atraso":0.0},{"unidade":"Irecê","meta_mes":2063,"meta_prop":1031.5,"realizado":898,"pct_prop":87.1,"falta_prop":133.5,"falta_mes":1165,"meta_diaria":114.6,"devendo":133.5,"dias_atraso":1.16},{"unidade":"Itaberaba","meta_mes":1067,"meta_prop":533.5,"realizado":475,"pct_prop":89.0,"falta_prop":58.5,"falta_mes":592,"meta_diaria":59.3,"devendo":58.5,"dias_atraso":0.99},{"unidade":"Itapetinga","meta_mes":928,"meta_prop":464.0,"realizado":451,"pct_prop":97.2,"falta_prop":13.0,"falta_mes":477,"meta_diaria":51.6,"devendo":13.0,"dias_atraso":0.25},{"unidade":"Jequié","meta_mes":1410,"meta_prop":705.0,"realizado":516,"pct_prop":73.2,"falta_prop":189.0,"falta_mes":894,"meta_diaria":78.3,"devendo":189.0,"dias_atraso":2.41},{"unidade":"Livramento de Nossa Senhora","meta_mes":142,"meta_prop":71.0,"realizado":79,"pct_prop":111.3,"falta_prop":0,"falta_mes":63,"meta_diaria":7.9,"devendo":0,"dias_atraso":0.0},{"unidade":"Luís Eduardo Magalhães","meta_mes":1423,"meta_prop":711.5,"realizado":629,"pct_prop":88.4,"falta_prop":82.5,"falta_mes":794,"meta_diaria":79.1,"devendo":82.5,"dias_atraso":1.04},{"unidade":"Santa Maria da Vitória","meta_mes":563,"meta_prop":281.5,"realizado":197,"pct_prop":70.0,"falta_prop":84.5,"falta_mes":366,"meta_diaria":31.3,"devendo":84.5,"dias_atraso":2.7},{"unidade":"Santo Amaro","meta_mes":1191,"meta_prop":595.5,"realizado":409,"pct_prop":68.7,"falta_prop":186.5,"falta_mes":782,"meta_diaria":66.2,"devendo":186.5,"dias_atraso":2.82},{"unidade":"Seabra","meta_mes":504,"meta_prop":252.0,"realizado":266,"pct_prop":105.6,"falta_prop":0,"falta_mes":238,"meta_diaria":28.0,"devendo":0,"dias_atraso":0.0},{"unidade":"Serrinha","meta_mes":942,"meta_prop":471.0,"realizado":361,"pct_prop":76.6,"falta_prop":110.0,"falta_mes":581,"meta_diaria":52.3,"devendo":110.0,"dias_atraso":2.1},{"unidade":"Vitória da Conquista","meta_mes":2430,"meta_prop":1215.0,"realizado":799,"pct_prop":65.8,"falta_prop":416.0,"falta_mes":1631,"meta_diaria":135.0,"devendo":416.0,"dias_atraso":3.08}],"totals":{"meta_mes":22051,"meta_prop":11025.5,"realizado":9719,"pct_prop":88.2,"falta_prop":1669.0,"falta_mes":12332,"meta_diaria":1225.2,"devendo":1669.0,"dias_atraso":1.36}},"RECORTE":{"rows":[{"unidade":"Barreiras","meta_mes":240,"meta_prop":120.0,"realizado":67,"pct_prop":55.8,"falta_prop":53.0,"falta_mes":173,"meta_diaria":10.9,"devendo":53.0,"dias_atraso":4.86},{"unidade":"Bom Jesus da Lapa","meta_mes":150,"meta_prop":75.0,"realizado":131,"pct_prop":174.7,"falta_prop":0,"falta_mes":19,"meta_diaria":6.8,"devendo":0,"dias_atraso":0.0},{"unidade":"Brumado","meta_mes":66,"meta_prop":33.0,"realizado":21,"pct_prop":63.6,"falta_prop":12.0,"falta_mes":45,"meta_diaria":3.0,"devendo":12.0,"dias_atraso":4.0},{"unidade":"Conceição do Coité","meta_mes":92,"meta_prop":46.0,"realizado":110,"pct_prop":239.1,"falta_prop":0,"falta_mes":0,"meta_diaria":4.2,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Norte","meta_mes":656,"meta_prop":328.0,"realizado":411,"pct_prop":125.3,"falta_prop":0,"falta_mes":245,"meta_diaria":29.8,"devendo":0,"dias_atraso":0.0},{"unidade":"Feira de Santana Sul","meta_mes":1004,"meta_prop":502.0,"realizado":655,"pct_prop":130.5,"falta_prop":0,"falta_mes":349,"meta_diaria":45.6,"devendo":0,"dias_atraso":0.0},{"unidade":"Guanambi","meta_mes":192,"meta_prop":96.0,"realizado":120,"pct_prop":125.0,"falta_prop":0,"falta_mes":72,"meta_diaria":8.7,"devendo":0,"dias_atraso":0.0},{"unidade":"Ibotirama","meta_mes":86,"meta_prop":43.0,"realizado":107,"pct_prop":248.8,"falta_prop":0,"falta_mes":0,"meta_diaria":3.9,"devendo":0,"dias_atraso":0.0},{"unidade":"Irecê","meta_mes":342,"meta_prop":171.0,"realizado":168,"pct_prop":98.2,"falta_prop":3.0,"falta_mes":174,"meta_diaria":15.5,"devendo":3.0,"dias_atraso":0.19},{"unidade":"Itaberaba","meta_mes":183,"meta_prop":91.5,"realizado":105,"pct_prop":114.8,"falta_prop":0,"falta_mes":78,"meta_diaria":8.3,"devendo":0,"dias_atraso":0.0},{"unidade":"Itapetinga","meta_mes":136,"meta_prop":68.0,"realizado":130,"pct_prop":191.2,"falta_prop":0,"falta_mes":6,"meta_diaria":6.2,"devendo":0,"dias_atraso":0.0},{"unidade":"Jequié","meta_mes":264,"meta_prop":132.0,"realizado":217,"pct_prop":164.4,"falta_prop":0,"falta_mes":47,"meta_diaria":12.0,"devendo":0,"dias_atraso":0.0},{"unidade":"Livramento de Nossa Senhora","meta_mes":20,"meta_prop":10.0,"realizado":21,"pct_prop":210.0,"falta_prop":0,"falta_mes":0,"meta_diaria":0.9,"devendo":0,"dias_atraso":0.0},{"unidade":"Luís Eduardo Magalhães","meta_mes":234,"meta_prop":117.0,"realizado":131,"pct_prop":112.0,"falta_prop":0,"falta_mes":103,"meta_diaria":10.6,"devendo":0,"dias_atraso":0.0},{"unidade":"Santa Maria da Vitória","meta_mes":85,"meta_prop":42.5,"realizado":30,"pct_prop":70.6,"falta_prop":12.5,"falta_mes":55,"meta_diaria":3.9,"devendo":12.5,"dias_atraso":3.24},{"unidade":"Santo Amaro","meta_mes":358,"meta_prop":179.0,"realizado":285,"pct_prop":159.2,"falta_prop":0,"falta_mes":73,"meta_diaria":16.3,"devendo":0,"dias_atraso":0.0},{"unidade":"Seabra","meta_mes":77,"meta_prop":38.5,"realizado":39,"pct_prop":101.3,"falta_prop":0,"falta_mes":38,"meta_diaria":3.5,"devendo":0,"dias_atraso":0.0},{"unidade":"Serrinha","meta_mes":368,"meta_prop":184.0,"realizado":177,"pct_prop":96.2,"falta_prop":7.0,"falta_mes":191,"meta_diaria":16.7,"devendo":7.0,"dias_atraso":0.42},{"unidade":"Vitória da Conquista","meta_mes":383,"meta_prop":191.5,"realizado":243,"pct_prop":126.9,"falta_prop":0,"falta_mes":140,"meta_diaria":17.4,"devendo":0,"dias_atraso":0.0}],"totals":{"meta_mes":4936,"meta_prop":2468.0,"realizado":3168,"pct_prop":128.4,"falta_prop":87.5,"falta_mes":1808,"meta_diaria":224.2,"devendo":87.5,"dias_atraso":0.39}},"BAIXA":{"rows":[{"unidade":"Barreiras","meta_mes":31,"meta_prop":15.5,"realizado":8,"pct_prop":51.6,"falta_prop":7.5,"falta_mes":23,"meta_diaria":1.4,"devendo":7.5,"dias_atraso":5.32},{"unidade":"Bom Jesus da Lapa","meta_mes":67,"meta_prop":33.5,"realizado":12,"pct_prop":35.8,"falta_prop":21.5,"falta_mes":55,"meta_diaria":3.0,"devendo":21.5,"dias_atraso":7.06},{"unidade":"Brumado","meta_mes":29,"meta_prop":14.5,"realizado":5,"pct_prop":34.5,"falta_prop":9.5,"falta_mes":24,"meta_diaria":1.3,"devendo":9.5,"dias_atraso":7.21},{"unidade":"Conceição do Coité","meta_mes":34,"meta_prop":17.0,"realizado":5,"pct_prop":29.4,"falta_prop":12.0,"falta_mes":29,"meta_diaria":1.5,"devendo":12.0,"dias_atraso":7.76},{"unidade":"Feira de Santana Norte","meta_mes":115,"meta_prop":57.5,"realizado":20,"pct_prop":34.8,"falta_prop":37.5,"falta_mes":95,"meta_diaria":5.2,"devendo":37.5,"dias_atraso":7.17},{"unidade":"Feira de Santana Sul","meta_mes":99,"meta_prop":49.5,"realizado":6,"pct_prop":12.1,"falta_prop":43.5,"falta_mes":93,"meta_diaria":4.5,"devendo":43.5,"dias_atraso":9.67},{"unidade":"Guanambi","meta_mes":40,"meta_prop":20.0,"realizado":5,"pct_prop":25.0,"falta_prop":15.0,"falta_mes":35,"meta_diaria":1.8,"devendo":15.0,"dias_atraso":8.25},{"unidade":"Ibotirama","meta_mes":57,"meta_prop":28.5,"realizado":12,"pct_prop":42.1,"falta_prop":16.5,"falta_mes":45,"meta_diaria":2.6,"devendo":16.5,"dias_atraso":6.37},{"unidade":"Irecê","meta_mes":81,"meta_prop":40.5,"realizado":1,"pct_prop":2.5,"falta_prop":39.5,"falta_mes":80,"meta_diaria":3.7,"devendo":39.5,"dias_atraso":10.73},{"unidade":"Itaberaba","meta_mes":57,"meta_prop":28.5,"realizado":15,"pct_prop":52.6,"falta_prop":13.5,"falta_mes":42,"meta_diaria":2.6,"devendo":13.5,"dias_atraso":5.21},{"unidade":"Itapetinga","meta_mes":33,"meta_prop":16.5,"realizado":8,"pct_prop":48.5,"falta_prop":8.5,"falta_mes":25,"meta_diaria":1.5,"devendo":8.5,"dias_atraso":5.67},{"unidade":"Jequié","meta_mes":59,"meta_prop":29.5,"realizado":12,"pct_prop":40.7,"falta_prop":17.5,"falta_mes":47,"meta_diaria":2.7,"devendo":17.5,"dias_atraso":6.53},{"unidade":"Livramento de Nossa Senhora","meta_mes":12,"meta_prop":6.0,"realizado":2,"pct_prop":33.3,"falta_prop":4.0,"falta_mes":10,"meta_diaria":0.5,"devendo":4.0,"dias_atraso":7.33},{"unidade":"Luís Eduardo Magalhães","meta_mes":36,"meta_prop":18.0,"realizado":7,"pct_prop":38.9,"falta_prop":11.0,"falta_mes":29,"meta_diaria":1.6,"devendo":11.0,"dias_atraso":6.72},{"unidade":"Santa Maria da Vitória","meta_mes":30,"meta_prop":15.0,"realizado":4,"pct_prop":26.7,"falta_prop":11.0,"falta_mes":26,"meta_diaria":1.4,"devendo":11.0,"dias_atraso":8.07},{"unidade":"Santo Amaro","meta_mes":91,"meta_prop":45.5,"realizado":4,"pct_prop":8.8,"falta_prop":41.5,"falta_mes":87,"meta_diaria":4.1,"devendo":41.5,"dias_atraso":10.03},{"unidade":"Seabra","meta_mes":40,"meta_prop":20.0,"realizado":3,"pct_prop":15.0,"falta_prop":17.0,"falta_mes":37,"meta_diaria":1.8,"devendo":17.0,"dias_atraso":9.35},{"unidade":"Serrinha","meta_mes":64,"meta_prop":32.0,"realizado":12,"pct_prop":37.5,"falta_prop":20.0,"falta_mes":52,"meta_diaria":2.9,"devendo":20.0,"dias_atraso":6.88},{"unidade":"Vitória da Conquista","meta_mes":103,"meta_prop":51.5,"realizado":21,"pct_prop":40.8,"falta_prop":30.5,"falta_mes":82,"meta_diaria":4.7,"devendo":30.5,"dias_atraso":6.51}],"totals":{"meta_mes":1078,"meta_prop":539.0,"realizado":162,"pct_prop":30.1,"falta_prop":377.0,"falta_mes":916,"meta_diaria":48.8,"devendo":377.0,"dias_atraso":7.73}},"TOTAL":{"rows":[{"unidade":"Barreiras","meta_mes":1626,"meta_prop":813.0,"realizado":626,"falta_prop":187.0,"falta_mes":1000,"meta_diaria":87.6,"devendo":187.0,"pct_prop":77.0,"dias_atraso":2.13},{"unidade":"Bom Jesus da Lapa","meta_mes":1257,"meta_prop":628.5,"realizado":539,"falta_prop":145.5,"falta_mes":718,"meta_diaria":67.6,"devendo":145.5,"pct_prop":85.8,"dias_atraso":2.15},{"unidade":"Brumado","meta_mes":574,"meta_prop":287.0,"realizado":243,"falta_prop":44.0,"falta_mes":331,"meta_diaria":30.9,"devendo":44.0,"pct_prop":84.7,"dias_atraso":1.42},{"unidade":"Conceição do Coité","meta_mes":623,"meta_prop":311.5,"realizado":356,"falta_prop":19.5,"falta_mes":285,"meta_diaria":33.3,"devendo":19.5,"pct_prop":114.3,"dias_atraso":0.59},{"unidade":"Feira de Santana Norte","meta_mes":2649,"meta_prop":1324.5,"realizado":1554,"falta_prop":37.5,"falta_mes":1095,"meta_diaria":139.3,"devendo":37.5,"pct_prop":117.3,"dias_atraso":0.27},{"unidade":"Feira de Santana Sul","meta_mes":3417,"meta_prop":1708.5,"realizado":1812,"falta_prop":49.5,"falta_mes":1605,"meta_diaria":178.7,"devendo":49.5,"pct_prop":106.1,"dias_atraso":0.28},{"unidade":"Guanambi","meta_mes":1468,"meta_prop":734.0,"realizado":634,"falta_prop":124.0,"falta_mes":834,"meta_diaria":79.2,"devendo":124.0,"pct_prop":86.4,"dias_atraso":1.57},{"unidade":"Ibotirama","meta_mes":732,"meta_prop":366.0,"realizado":570,"falta_prop":16.5,"falta_mes":183,"meta_diaria":39.2,"devendo":16.5,"pct_prop":155.7,"dias_atraso":0.42},{"unidade":"Irecê","meta_mes":2486,"meta_prop":1243.0,"realizado":1067,"falta_prop":176.0,"falta_mes":1419,"meta_diaria":133.8,"devendo":176.0,"pct_prop":85.8,"dias_atraso":1.32},{"unidade":"Itaberaba","meta_mes":1307,"meta_prop":653.5,"realizado":595,"falta_prop":72.0,"falta_mes":712,"meta_diaria":70.2,"devendo":72.0,"pct_prop":91.0,"dias_atraso":1.03},{"unidade":"Itapetinga","meta_mes":1097,"meta_prop":548.5,"realizado":589,"falta_prop":21.5,"falta_mes":508,"meta_diaria":59.3,"devendo":21.5,"pct_prop":107.4,"dias_atraso":0.36},{"unidade":"Jequié","meta_mes":1733,"meta_prop":866.5,"realizado":745,"falta_prop":206.5,"falta_mes":988,"meta_diaria":93.0,"devendo":206.5,"pct_prop":86.0,"dias_atraso":2.22},{"unidade":"Livramento de Nossa Senhora","meta_mes":174,"meta_prop":87.0,"realizado":102,"falta_prop":4.0,"falta_mes":73,"meta_diaria":9.3,"devendo":4.0,"pct_prop":117.2,"dias_atraso":0.43},{"unidade":"Luís Eduardo Magalhães","meta_mes":1693,"meta_prop":846.5,"realizado":767,"falta_prop":93.5,"falta_mes":926,"meta_diaria":91.3,"devendo":93.5,"pct_prop":90.6,"dias_atraso":1.02},{"unidade":"Santa Maria da Vitória","meta_mes":678,"meta_prop":339.0,"realizado":231,"falta_prop":108.0,"falta_mes":447,"meta_diaria":36.6,"devendo":108.0,"pct_prop":68.1,"dias_atraso":2.95},{"unidade":"Santo Amaro","meta_mes":1640,"meta_prop":820.0,"realizado":698,"falta_prop":228.0,"falta_mes":942,"meta_diaria":86.6,"devendo":228.0,"pct_prop":85.1,"dias_atraso":2.63},{"unidade":"Seabra","meta_mes":621,"meta_prop":310.5,"realizado":308,"falta_prop":17.0,"falta_mes":313,"meta_diaria":33.3,"devendo":17.0,"pct_prop":99.2,"dias_atraso":0.51},{"unidade":"Serrinha","meta_mes":1374,"meta_prop":687.0,"realizado":550,"falta_prop":137.0,"falta_mes":824,"meta_diaria":71.9,"devendo":137.0,"pct_prop":80.1,"dias_atraso":1.91},{"unidade":"Vitória da Conquista","meta_mes":2916,"meta_prop":1458.0,"realizado":1063,"falta_prop":446.5,"falta_mes":1853,"meta_diaria":157.1,"devendo":446.5,"pct_prop":72.9,"dias_atraso":2.84}],"totals":{"meta_mes":28065,"meta_prop":14032.5,"realizado":13049,"pct_prop":93.0,"falta_prop":2133.5,"falta_mes":15056,"meta_diaria":1498.2,"devendo":2133.5,"dias_atraso":1.42}}},"dates":["2026-09-01","2026-09-02","2026-09-03","2026-09-04","2026-09-05","2026-09-08","2026-09-09","2026-09-10","2026-09-11","2026-09-12","2026-09-14","2026-09-15"],"daily_all":[{"date":"2026-09-01","CORTE":1244,"RECORTE":24,"BAIXA":0},{"date":"2026-09-02","CORTE":1035,"RECORTE":39,"BAIXA":1},{"date":"2026-09-03","CORTE":933,"RECORTE":354,"BAIXA":7},{"date":"2026-09-04","CORTE":0,"RECORTE":808,"BAIXA":6},{"date":"2026-09-05","CORTE":0,"RECORTE":64,"BAIXA":4},{"date":"2026-09-08","CORTE":914,"RECORTE":324,"BAIXA":10},{"date":"2026-09-09","CORTE":1351,"RECORTE":212,"BAIXA":17},{"date":"2026-09-10","CORTE":1117,"RECORTE":369,"BAIXA":32},{"date":"2026-09-11","CORTE":1,"RECORTE":702,"BAIXA":55},{"date":"2026-09-12","CORTE":0,"RECORTE":96,"BAIXA":12},{"date":"2026-09-14","CORTE":1681,"RECORTE":96,"BAIXA":2},{"date":"2026-09-15","CORTE":1443,"RECORTE":80,"BAIXA":16}],"daily_by_unit":{"Barreiras":[{"date":"2026-09-01","CORTE":85,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":69,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":28,"RECORTE":8,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":4,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":40,"RECORTE":9,"BAIXA":2},{"date":"2026-09-09","CORTE":111,"RECORTE":10,"BAIXA":2},{"date":"2026-09-10","CORTE":51,"RECORTE":12,"BAIXA":2},{"date":"2026-09-11","CORTE":0,"RECORTE":10,"BAIXA":0},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":77,"RECORTE":6,"BAIXA":0},{"date":"2026-09-15","CORTE":90,"RECORTE":8,"BAIXA":2}],"Bom Jesus da Lapa":[{"date":"2026-09-01","CORTE":67,"RECORTE":2,"BAIXA":0},{"date":"2026-09-02","CORTE":38,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":36,"RECORTE":7,"BAIXA":2},{"date":"2026-09-04","CORTE":0,"RECORTE":37,"BAIXA":1},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":24,"RECORTE":11,"BAIXA":1},{"date":"2026-09-09","CORTE":48,"RECORTE":10,"BAIXA":0},{"date":"2026-09-10","CORTE":69,"RECORTE":8,"BAIXA":5},{"date":"2026-09-11","CORTE":0,"RECORTE":24,"BAIXA":1},{"date":"2026-09-12","CORTE":0,"RECORTE":2,"BAIXA":0},{"date":"2026-09-14","CORTE":70,"RECORTE":6,"BAIXA":0},{"date":"2026-09-15","CORTE":44,"RECORTE":24,"BAIXA":2}],"Brumado":[{"date":"2026-09-01","CORTE":27,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":47,"RECORTE":3,"BAIXA":0},{"date":"2026-09-03","CORTE":1,"RECORTE":8,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":1,"BAIXA":1},{"date":"2026-09-05","CORTE":0,"RECORTE":1,"BAIXA":4},{"date":"2026-09-08","CORTE":20,"RECORTE":0,"BAIXA":0},{"date":"2026-09-09","CORTE":23,"RECORTE":0,"BAIXA":0},{"date":"2026-09-10","CORTE":39,"RECORTE":1,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":5,"BAIXA":0},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":21,"RECORTE":2,"BAIXA":0},{"date":"2026-09-15","CORTE":39,"RECORTE":0,"BAIXA":0}],"Conceição do Coité":[{"date":"2026-09-01","CORTE":23,"RECORTE":2,"BAIXA":0},{"date":"2026-09-02","CORTE":34,"RECORTE":1,"BAIXA":0},{"date":"2026-09-03","CORTE":56,"RECORTE":12,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":20,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":38,"RECORTE":14,"BAIXA":0},{"date":"2026-09-09","CORTE":23,"RECORTE":15,"BAIXA":0},{"date":"2026-09-10","CORTE":23,"RECORTE":3,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":8,"BAIXA":1},{"date":"2026-09-12","CORTE":0,"RECORTE":9,"BAIXA":4},{"date":"2026-09-14","CORTE":23,"RECORTE":20,"BAIXA":0},{"date":"2026-09-15","CORTE":21,"RECORTE":6,"BAIXA":0}],"Feira de Santana Norte":[{"date":"2026-09-01","CORTE":205,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":119,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":106,"RECORTE":86,"BAIXA":4},{"date":"2026-09-04","CORTE":0,"RECORTE":141,"BAIXA":2},{"date":"2026-09-05","CORTE":0,"RECORTE":7,"BAIXA":0},{"date":"2026-09-08","CORTE":99,"RECORTE":27,"BAIXA":0},{"date":"2026-09-09","CORTE":183,"RECORTE":3,"BAIXA":1},{"date":"2026-09-10","CORTE":146,"RECORTE":55,"BAIXA":5},{"date":"2026-09-11","CORTE":0,"RECORTE":66,"BAIXA":7},{"date":"2026-09-12","CORTE":0,"RECORTE":11,"BAIXA":0},{"date":"2026-09-14","CORTE":148,"RECORTE":12,"BAIXA":0},{"date":"2026-09-15","CORTE":117,"RECORTE":3,"BAIXA":1}],"Feira de Santana Sul":[{"date":"2026-09-01","CORTE":182,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":129,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":69,"RECORTE":81,"BAIXA":1},{"date":"2026-09-04","CORTE":0,"RECORTE":204,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":36,"BAIXA":0},{"date":"2026-09-08","CORTE":115,"RECORTE":35,"BAIXA":0},{"date":"2026-09-09","CORTE":158,"RECORTE":33,"BAIXA":0},{"date":"2026-09-10","CORTE":131,"RECORTE":87,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":148,"BAIXA":5},{"date":"2026-09-12","CORTE":0,"RECORTE":21,"BAIXA":0},{"date":"2026-09-14","CORTE":201,"RECORTE":10,"BAIXA":0},{"date":"2026-09-15","CORTE":166,"RECORTE":0,"BAIXA":0}],"Guanambi":[{"date":"2026-09-01","CORTE":71,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":41,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":71,"RECORTE":0,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":11,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":54,"RECORTE":45,"BAIXA":0},{"date":"2026-09-09","CORTE":46,"RECORTE":0,"BAIXA":0},{"date":"2026-09-10","CORTE":71,"RECORTE":7,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":51,"BAIXA":0},{"date":"2026-09-12","CORTE":0,"RECORTE":6,"BAIXA":5},{"date":"2026-09-14","CORTE":43,"RECORTE":0,"BAIXA":0},{"date":"2026-09-15","CORTE":112,"RECORTE":0,"BAIXA":0}],"Ibotirama":[{"date":"2026-09-01","CORTE":59,"RECORTE":8,"BAIXA":0},{"date":"2026-09-02","CORTE":80,"RECORTE":5,"BAIXA":0},{"date":"2026-09-03","CORTE":18,"RECORTE":5,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":21,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":72,"RECORTE":15,"BAIXA":1},{"date":"2026-09-09","CORTE":49,"RECORTE":16,"BAIXA":1},{"date":"2026-09-10","CORTE":6,"RECORTE":11,"BAIXA":4},{"date":"2026-09-11","CORTE":1,"RECORTE":12,"BAIXA":4},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":96,"RECORTE":7,"BAIXA":1},{"date":"2026-09-15","CORTE":70,"RECORTE":7,"BAIXA":1}],"Irecê":[{"date":"2026-09-01","CORTE":137,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":82,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":58,"RECORTE":36,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":76,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":2,"BAIXA":0},{"date":"2026-09-08","CORTE":111,"RECORTE":10,"BAIXA":0},{"date":"2026-09-09","CORTE":90,"RECORTE":2,"BAIXA":0},{"date":"2026-09-10","CORTE":106,"RECORTE":0,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":42,"BAIXA":1},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":196,"RECORTE":0,"BAIXA":0},{"date":"2026-09-15","CORTE":118,"RECORTE":0,"BAIXA":0}],"Itaberaba":[{"date":"2026-09-01","CORTE":63,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":39,"RECORTE":11,"BAIXA":0},{"date":"2026-09-03","CORTE":69,"RECORTE":2,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":20,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":1,"BAIXA":0},{"date":"2026-09-08","CORTE":36,"RECORTE":18,"BAIXA":4},{"date":"2026-09-09","CORTE":73,"RECORTE":2,"BAIXA":1},{"date":"2026-09-10","CORTE":36,"RECORTE":13,"BAIXA":5},{"date":"2026-09-11","CORTE":0,"RECORTE":32,"BAIXA":2},{"date":"2026-09-12","CORTE":0,"RECORTE":5,"BAIXA":0},{"date":"2026-09-14","CORTE":101,"RECORTE":1,"BAIXA":0},{"date":"2026-09-15","CORTE":58,"RECORTE":0,"BAIXA":3}],"Itapetinga":[{"date":"2026-09-01","CORTE":10,"RECORTE":6,"BAIXA":0},{"date":"2026-09-02","CORTE":47,"RECORTE":1,"BAIXA":0},{"date":"2026-09-03","CORTE":60,"RECORTE":1,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":13,"BAIXA":1},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":75,"RECORTE":23,"BAIXA":0},{"date":"2026-09-09","CORTE":41,"RECORTE":33,"BAIXA":0},{"date":"2026-09-10","CORTE":34,"RECORTE":12,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":40,"BAIXA":7},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":122,"RECORTE":0,"BAIXA":0},{"date":"2026-09-15","CORTE":62,"RECORTE":1,"BAIXA":0}],"Jequié":[{"date":"2026-09-01","CORTE":24,"RECORTE":2,"BAIXA":0},{"date":"2026-09-02","CORTE":70,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":49,"RECORTE":28,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":65,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":6,"BAIXA":0},{"date":"2026-09-08","CORTE":32,"RECORTE":30,"BAIXA":0},{"date":"2026-09-09","CORTE":57,"RECORTE":20,"BAIXA":0},{"date":"2026-09-10","CORTE":70,"RECORTE":9,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":56,"BAIXA":12},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":116,"RECORTE":1,"BAIXA":0},{"date":"2026-09-15","CORTE":98,"RECORTE":0,"BAIXA":0}],"Livramento de Nossa Senhora":[{"date":"2026-09-01","CORTE":13,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":2,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":3,"RECORTE":0,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":3,"BAIXA":1},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":13,"RECORTE":1,"BAIXA":0},{"date":"2026-09-09","CORTE":4,"RECORTE":1,"BAIXA":0},{"date":"2026-09-10","CORTE":10,"RECORTE":0,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":15,"BAIXA":1},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":19,"RECORTE":1,"BAIXA":0},{"date":"2026-09-15","CORTE":15,"RECORTE":0,"BAIXA":0}],"Luís Eduardo Magalhães":[{"date":"2026-09-01","CORTE":14,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":47,"RECORTE":11,"BAIXA":1},{"date":"2026-09-03","CORTE":60,"RECORTE":22,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":37,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":33,"RECORTE":9,"BAIXA":0},{"date":"2026-09-09","CORTE":151,"RECORTE":4,"BAIXA":4},{"date":"2026-09-10","CORTE":104,"RECORTE":7,"BAIXA":2},{"date":"2026-09-11","CORTE":0,"RECORTE":33,"BAIXA":0},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":99,"RECORTE":4,"BAIXA":0},{"date":"2026-09-15","CORTE":121,"RECORTE":4,"BAIXA":0}],"Santa Maria da Vitória":[{"date":"2026-09-01","CORTE":25,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":24,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":17,"RECORTE":5,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":4,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":1,"RECORTE":6,"BAIXA":1},{"date":"2026-09-09","CORTE":36,"RECORTE":3,"BAIXA":0},{"date":"2026-09-10","CORTE":32,"RECORTE":0,"BAIXA":1},{"date":"2026-09-11","CORTE":0,"RECORTE":4,"BAIXA":0},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":28,"RECORTE":0,"BAIXA":0},{"date":"2026-09-15","CORTE":34,"RECORTE":8,"BAIXA":2}],"Santo Amaro":[{"date":"2026-09-01","CORTE":29,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":49,"RECORTE":1,"BAIXA":0},{"date":"2026-09-03","CORTE":26,"RECORTE":17,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":69,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":7,"BAIXA":0},{"date":"2026-09-08","CORTE":44,"RECORTE":21,"BAIXA":0},{"date":"2026-09-09","CORTE":85,"RECORTE":22,"BAIXA":0},{"date":"2026-09-10","CORTE":35,"RECORTE":39,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":76,"BAIXA":3},{"date":"2026-09-12","CORTE":0,"RECORTE":27,"BAIXA":0},{"date":"2026-09-14","CORTE":78,"RECORTE":6,"BAIXA":0},{"date":"2026-09-15","CORTE":63,"RECORTE":0,"BAIXA":1}],"Seabra":[{"date":"2026-09-01","CORTE":43,"RECORTE":3,"BAIXA":0},{"date":"2026-09-02","CORTE":34,"RECORTE":0,"BAIXA":0},{"date":"2026-09-03","CORTE":23,"RECORTE":0,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":11,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":22,"RECORTE":1,"BAIXA":0},{"date":"2026-09-09","CORTE":23,"RECORTE":0,"BAIXA":0},{"date":"2026-09-10","CORTE":13,"RECORTE":2,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":17,"BAIXA":1},{"date":"2026-09-12","CORTE":0,"RECORTE":5,"BAIXA":0},{"date":"2026-09-14","CORTE":58,"RECORTE":0,"BAIXA":0},{"date":"2026-09-15","CORTE":50,"RECORTE":0,"BAIXA":2}],"Serrinha":[{"date":"2026-09-01","CORTE":35,"RECORTE":1,"BAIXA":0},{"date":"2026-09-02","CORTE":37,"RECORTE":4,"BAIXA":0},{"date":"2026-09-03","CORTE":54,"RECORTE":11,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":26,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-08","CORTE":56,"RECORTE":19,"BAIXA":0},{"date":"2026-09-09","CORTE":28,"RECORTE":21,"BAIXA":4},{"date":"2026-09-10","CORTE":39,"RECORTE":59,"BAIXA":0},{"date":"2026-09-11","CORTE":0,"RECORTE":17,"BAIXA":5},{"date":"2026-09-12","CORTE":0,"RECORTE":10,"BAIXA":3},{"date":"2026-09-14","CORTE":63,"RECORTE":3,"BAIXA":0},{"date":"2026-09-15","CORTE":49,"RECORTE":6,"BAIXA":0}],"Vitória da Conquista":[{"date":"2026-09-01","CORTE":132,"RECORTE":0,"BAIXA":0},{"date":"2026-09-02","CORTE":47,"RECORTE":2,"BAIXA":0},{"date":"2026-09-03","CORTE":129,"RECORTE":25,"BAIXA":0},{"date":"2026-09-04","CORTE":0,"RECORTE":45,"BAIXA":0},{"date":"2026-09-05","CORTE":0,"RECORTE":4,"BAIXA":0},{"date":"2026-09-08","CORTE":29,"RECORTE":30,"BAIXA":1},{"date":"2026-09-09","CORTE":122,"RECORTE":17,"BAIXA":4},{"date":"2026-09-10","CORTE":102,"RECORTE":44,"BAIXA":8},{"date":"2026-09-11","CORTE":0,"RECORTE":46,"BAIXA":5},{"date":"2026-09-12","CORTE":0,"RECORTE":0,"BAIXA":0},{"date":"2026-09-14","CORTE":122,"RECORTE":17,"BAIXA":1},{"date":"2026-09-15","CORTE":116,"RECORTE":13,"BAIXA":2}]}};
+(async function () {
+  // ==================================================================
+  // LIVE DATA ENGINE — fetches EXECUTADOS + BASES DE META from the
+  // Google Sheet on every page load and computes everything client-side.
+  // Mirrors compute_v4.py / unit_resolver.py exactly (same rules):
+  //   - unit is resolved from Localidade/Bairro (never centro_servico)
+  //   - CORTE meta days = seg-qui; RECORTE/BAIXA meta days = seg-sex
+  //   - TOTAL = sum of the 3 already-proportionalized categories
+  // ==================================================================
+  var SHEET_ID = '14epjhldZjsWsXsPsQ4geso46T85qkKNVk9vR_w-apR4';
+  function gvizUrl(sheetName) {
+    return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheetName) + '&_=' + Date.now();
+  }
+
+  function parseCSV(text) {
+    var rows = [], row = [], field = '', inQuotes = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else { inQuotes = false; }
+        } else { field += c; }
+      } else {
+        if (c === '"') { inQuotes = true; }
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\r') { /* skip */ }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else { field += c; }
+      }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  async function fetchSheetRows(sheetName) {
+    var res = await fetch(gvizUrl(sheetName), { cache: 'no-store' });
+    if (!res.ok) throw new Error('Falha ao buscar a aba "' + sheetName + '" da planilha (HTTP ' + res.status + ').');
+    var text = await res.text();
+    return parseCSV(text);
+  }
+
+  function stripAccentsJS(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function normJS(s) {
+    if (s === null || s === undefined) return '';
+    s = String(s).trim().toUpperCase();
+    s = stripAccentsJS(s);
+    return s.replace(/\s+/g, ' ');
+  }
+
+  var LOC_MAP = {"ANGICAL":"BARREIRAS","BAIANOPOLIS":"BARREIRAS","BARREIRAS":"BARREIRAS","CATOLANDIA":"BARREIRAS","COTEGIPE":"BARREIRAS","CRISTOPOLIS":"BARREIRAS","DIANOPOLIS":"BARREIRAS","FORMOSA DO RIO PRETO":"LUIS EDUARDO MAGALHAES","RIACHAO DAS NEVES":"LUIS EDUARDO MAGALHAES","SANTA RITA DE CASSIA":"LUIS EDUARDO MAGALHAES","SAO DESIDERIO":"LUIS EDUARDO MAGALHAES","WANDERLEY":"BARREIRAS","LUIS EDUARDO MAGALHAES":"LUIS EDUARDO MAGALHAES","PARATINGA":"BOM JESUS DA LAPA","BOM JESUS DA LAPA":"BOM JESUS DA LAPA","BREJOLANDIA":"BOM JESUS DA LAPA","CANAPOLIS":"BOM JESUS DA LAPA","SANTANA":"BOM JESUS DA LAPA","SERRA DO RAMALHO":"BOM JESUS DA LAPA","SERRA DOURADA":"BOM JESUS DA LAPA","SITIO DO MATO":"BOM JESUS DA LAPA","TABOCAS DO BREJO VELHO":"BOM JESUS DA LAPA","MATINA":"BOM JESUS DA LAPA","RIACHO DE SANTANA":"BOM JESUS DA LAPA","COCOS":"SANTA MARIA DA VITORIA","CORIBE":"SANTA MARIA DA VITORIA","CORRENTINA":"SANTA MARIA DA VITORIA","JABORANDI":"SANTA MARIA DA VITORIA","SANTA MARIA DA VITORIA":"SANTA MARIA DA VITORIA","SAO FELIX DO CORIBE":"SANTA MARIA DA VITORIA","FEIRA DA MATA":"SANTA MARIA DA VITORIA","ARACATU":"BRUMADO","BARRA DA ESTIVA":"BRUMADO","BRUMADO":"BRUMADO","CACULE":"BRUMADO","CONTENDAS DO SINCORA":"BRUMADO","GUAJERU":"BRUMADO","IBIASSUCE":"BRUMADO","IBICOARA":"BRUMADO","ITUACU":"BRUMADO","LAGOA REAL":"BRUMADO","MALHADA DE PEDRAS":"BRUMADO","RIO DO ANTONIO":"BRUMADO","TANHACU":"BRUMADO","ABAIRA":"LIVRAMENTO DE NOSSA SENHORA","BOTUPORA":"LIVRAMENTO DE NOSSA SENHORA","CATURAMA":"LIVRAMENTO DE NOSSA SENHORA","DOM BASILIO":"LIVRAMENTO DE NOSSA SENHORA","ERICO CARDOSO":"LIVRAMENTO DE NOSSA SENHORA","JUSSIAPE":"LIVRAMENTO DE NOSSA SENHORA","LIVRAMENTO DE NOSSA SENHORA":"LIVRAMENTO DE NOSSA SENHORA","PARAMIRIM":"LIVRAMENTO DE NOSSA SENHORA","PIATA":"LIVRAMENTO DE NOSSA SENHORA","RIO DE CONTAS":"LIVRAMENTO DE NOSSA SENHORA","RIO DO PIRES":"LIVRAMENTO DE NOSSA SENHORA","TANQUE NOVO":"LIVRAMENTO DE NOSSA SENHORA","FEIRA DE SANTANA":"FEIRA CENTRO","ANGUERA":"FEIRA NORTE","ANTONIO CARDOSO":"FEIRA NORTE","IPECAETA":"FEIRA NORTE","IPIRA":"FEIRA NORTE","PINTADAS":"FEIRA NORTE","RAFAEL JAMBEIRO":"FEIRA NORTE","SANTO ESTEVAO":"FEIRA NORTE","SERRA PRETA":"FEIRA NORTE","CONCEICAO DA FEIRA":"FEIRA SUL","SAO GONCALO DOS CAMPOS":"FEIRA SUL","AMELIA RODRIGUES":"SANTO AMARO","CABACEIRAS DO PARAGUACU":"SANTO AMARO","CACHOEIRA":"SANTO AMARO","CONCEICAO DO JACUIPE":"SANTO AMARO","CORACAO DE MARIA":"SANTO AMARO","GOVERNADOR MANGABEIRA":"SANTO AMARO","MARAGOGIPE":"SANTO AMARO","MURITIBA":"SANTO AMARO","SANTO AMARO":"SANTO AMARO","SAO FELIX":"SANTO AMARO","SAUBARA":"SANTO AMARO","TEODORO SAMPAIO":"SANTO AMARO","TERRA NOVA":"SANTO AMARO","CAETITE":"GUANAMBI","CANDIBA":"GUANAMBI","CARINHANHA":"GUANAMBI","GUANAMBI":"GUANAMBI","IGAPORA":"GUANAMBI","IUIU":"GUANAMBI","JACARACI":"GUANAMBI","LICINIO DE ALMEIDA":"GUANAMBI","MALHADA":"GUANAMBI","MORTUGABA":"GUANAMBI","PALMAS DE MONTE ALTO":"GUANAMBI","PINDAI":"GUANAMBI","SEBASTIAO LARANJEIRAS":"GUANAMBI","URANDI":"GUANAMBI","MANSIDAO":"IBOTIRAMA","BARRA":"IBOTIRAMA","BOQUIRA":"IBOTIRAMA","BROTAS DE MACAUBAS":"IBOTIRAMA","BURITIRAMA":"IBOTIRAMA","IBIPITANGA":"IBOTIRAMA","IBITIARA":"IBOTIRAMA","IBOTIRAMA":"IBOTIRAMA","IPUPIARA":"IBOTIRAMA","MACAUBAS":"IBOTIRAMA","MORPARA":"IBOTIRAMA","MUQUEM DE SAO FRANCISCO":"IBOTIRAMA","NOVO HORIZONTE":"IBOTIRAMA","OLIVEIRA DOS BREJINHOS":"IBOTIRAMA","AMERICA DOURADA":"IRECE","BARRA DO MENDES":"IRECE","BARRO ALTO":"IRECE","CAFARNAUM":"IRECE","CANARANA":"IRECE","CENTRAL":"IRECE","GENTIO DO OURO":"IRECE","IBIPEBA":"IRECE","IBITITA":"IRECE","IRECE":"IRECE","ITAGUACU DA BAHIA":"IRECE","JOAO DOURADO":"IRECE","JUSSARA":"IRECE","LAPAO":"IRECE","MORRO DO CHAPEU":"IRECE","MULUNGU DO MORRO":"IRECE","PRESIDENTE DUTRA":"IRECE","SAO GABRIEL":"IRECE","UIBAI":"IRECE","XIQUE XIQUE":"IRECE","VARZEA NOVA":"IRECE","XIQUE-XIQUE":"IRECE","ITABERABA":"ITABERABA","BOA VISTA DO TUPIM":"ITABERABA","IACU":"ITABERABA","MARCIONILIO SOUZA":"ITABERABA","ITAETE":"ITABERABA","IRAMAIA":"ITABERABA","RUY BARBOSA":"ITABERABA","MACAJUBA":"ITABERABA","UTINGA":"ITABERABA","WAGNER":"ITABERABA","LAJEDINHO":"ITABERABA","BONITO":"ITABERABA","SEABRA":"SEABRA","BONINAL":"SEABRA","IRAQUARA":"SEABRA","SOUTO SOARES":"SEABRA","PALMEIRAS":"SEABRA","LENCOIS":"SEABRA","ANDARAI":"SEABRA","NOVA REDENCAO":"SEABRA","IBIQUERA":"SEABRA","MUCUGE":"SEABRA","BREJOES":"JEQUIE","CRAVOLANDIA":"JEQUIE","IRAJUBA":"JEQUIE","ITAQUARA":"JEQUIE","ITIRUCU":"JEQUIE","JAGUAQUARA":"JEQUIE","JEQUIE":"JEQUIE","LAFAIETE COUTINHO":"JEQUIE","LAJEDO DO TABOCAL":"JEQUIE","MANOEL VITORINO":"JEQUIE","MARACAS":"JEQUIE","NOVA ITARANA":"JEQUIE","PLANALTINO":"JEQUIE","SANTA INES":"JEQUIE","JITAUNA":"JEQUIE","LAGEDO DO TABOCAL":"JEQUIE","CANDEAL":"CONCEICAO DO COITE","CAPELA DO ALTO ALEGRE":"CONCEICAO DO COITE","CONCEICAO DO COITE":"CONCEICAO DO COITE","ICHU":"CONCEICAO DO COITE","NOVA FATIMA":"CONCEICAO DO COITE","PE DE SERRA":"CONCEICAO DO COITE","RETIROLANDIA":"CONCEICAO DO COITE","RIACHAO DO JACUIPE":"CONCEICAO DO COITE","SANTA LUZ":"CONCEICAO DO COITE","SAO DOMINGOS":"CONCEICAO DO COITE","TANQUINHO":"CONCEICAO DO COITE","VALENTE":"CONCEICAO DO COITE","AGUA FRIA":"SERRINHA","ARACI":"SERRINHA","BARROCAS":"SERRINHA","BIRITINGA":"SERRINHA","IRARA":"SERRINHA","LAMARAO":"SERRINHA","OURICANGAS":"SERRINHA","SANTA BARBARA":"SERRINHA","SANTANOPOLIS":"SERRINHA","SATIRO DIAS":"SERRINHA","SERRINHA":"SERRINHA","TEOFILANDIA":"SERRINHA","ITAPETINGA":"ITAPETINGA","CAATIBA":"ITAPETINGA","ITORORO":"ITAPETINGA","FIRMINO ALVES":"ITAPETINGA","IBICUI":"ITAPETINGA","IGUAI":"ITAPETINGA","NOVA CANAA":"ITAPETINGA","MACARANI":"ITAPETINGA","MAIQUINIQUE":"ITAPETINGA","ITARANTIM":"ITAPETINGA","POTIRAGUA":"ITAPETINGA","RIBEIRAO DO LARGO":"ITAPETINGA","ITAMBE":"ITAPETINGA","ANAGE":"VITORIA DA CONQUISTA","BARRA DO CHOCA":"VITORIA DA CONQUISTA","BELO CAMPO":"VITORIA DA CONQUISTA","BOA NOVA":"VITORIA DA CONQUISTA","BOM JESUS DA SERRA":"VITORIA DA CONQUISTA","CAETANOS":"VITORIA DA CONQUISTA","CANDIDO SALES":"VITORIA DA CONQUISTA","CARAIBAS":"VITORIA DA CONQUISTA","CONDEUBA":"VITORIA DA CONQUISTA","CORDEIROS":"VITORIA DA CONQUISTA","ENCRUZILHADA":"VITORIA DA CONQUISTA","MAETINGA":"VITORIA DA CONQUISTA","MIRANTE":"VITORIA DA CONQUISTA","PIRIPA":"VITORIA DA CONQUISTA","PLANALTO":"VITORIA DA CONQUISTA","POCOES":"VITORIA DA CONQUISTA","PRESIDENTE JANIO QUADROS":"VITORIA DA CONQUISTA","TREMEDAL":"VITORIA DA CONQUISTA","VITORIA DA CONQUISTA":"VITORIA DA CONQUISTA","XIQUEXIQUE":"IRECE"};
+  var BAIRRO_MAP = {"35 BI":"FEIRA SUL","AEROPORTO":"FEIRA SUL","ALPHAVILLE":"FEIRA NORTE","AVIARIO":"FEIRA SUL","AVIARIO - SECLA":"FEIRA SUL","BARROQUINHA":"FEIRA NORTE","BRASILIA":"FEIRA SUL","CALUMBI":"FEIRA SUL","CAMPO DO GADO VELHO":"FEIRA SUL","CAPUCHINHOS":"FEIRA SUL","CASEB":"FEIRA SUL","CENTRO - IPUACU":"FEIRA NORTE","CENTRO - SECLA":"FEIRA SUL","CENTRO-324 101":"FEIRA SUL","CENTRO-AG CIDADE NOVA RURAL":"FEIRA SUL","CENTRO-ESTRADA DO FEIJAO":"FEIRA NORTE","CENTRO-FEIRA DE SANTANA":"FEIRA SUL","CENTRO-HUMILDES":"FEIRA SUL","CENTRO-JAIBA":"FEIRA SUL","CENTRO-LIMOEIRO":"FEIRA SUL","CENTRO-PAU POMBO":"FEIRA SUL","CENTRO-SAO JOAO":"FEIRA NORTE","CHACARA BOM VIVER":"FEIRA SUL","CHACARA SAO COSME":"FEIRA SUL","CIS":"FEIRA SUL","CONCEICAO":"FEIRA SUL","CONCEICAO 2":"FEIRA SUL","CONCEICAO II":"FEIRA SUL","CONCEICAO III":"FEIRA SUL","CORONEL JOSE PINTO":"FEIRA SUL","CRUZEIRO":"FEIRA NORTE","ESTACAO NOVA":"FEIRA SUL","ESTRADA BOIADEIRO":"FEIRA SUL","EUCALIPTO":"FEIRA SUL","EUCALIPTOS":"FEIRA SUL","FEIRA IV":"FEIRA SUL","FEIRA VII":"FEIRA SUL","FEIRA X":"FEIRA SUL","FEIRAGUAI":"FEIRA SUL","HUMILDES":"FEIRA SUL","JARDIM ACACIA":"FEIRA SUL","JOMAFA":"FEIRA SUL","KALILANDIA":"FEIRA SUL","LAGOA GRANDE":"FEIRA SUL","LAGOA SALGADA":"FEIRA SUL","LAGOA SUBAE":"FEIRA SUL","LIMOEIRO":"FEIRA SUL","MUCHILA":"FEIRA SUL","OLHOS D AGUA":"FEIRA SUL","PANORAMA":"FEIRA SUL","PARQUE GETULIO VARGAS":"FEIRA SUL","PEDRA DO DESCANSO":"FEIRA SUL","PILAO":"FEIRA SUL","PONTO CENTRAL":"FEIRA SUL","POV TANQUINHO RIBEIRO":"FEIRA SUL","QUEIMADINHA":"FEIRA SUL","REGISTRO":"FEIRA SUL","RUA NOVA":"FEIRA NORTE","RURAL - IPUACU":"FEIRA NORTE","RURAL-324 101":"FEIRA SUL","RURAL-AG CIDADE NOVA RURAL":"FEIRA SUL","RURAL-FEIRA DE SANTANA - SECLA":"FEIRA SUL","RURAL-HUMILDES":"FEIRA SUL","RURAL-JAIBA":"FEIRA SUL","RURAL-LIMOEIRO":"FEIRA SUL","RURAL-PAU POMBO":"FEIRA SUL","SANTA MONICA":"FEIRA SUL","SANTA MONICA II":"FEIRA SUL","SANTO ANTONIO DOS PRAZERES":"FEIRA SUL","SAO JOAO":"FEIRA SUL","SERRARIA BRASIL":"FEIRA SUL","SIM":"FEIRA SUL","SUBAE":"FEIRA SUL","TANQUE DA NACAO":"FEIRA SUL","TERRA DURA-RURAL":"FEIRA SUL","TOMBA":"FEIRA SUL","TOMBA-LOTEAMENTO BOA ESPERANCA":"FEIRA SUL","TOMBA-LUIS EDUARDO MAGALHAES":"FEIRA SUL","VILA OLIMPIA":"FEIRA SUL","VIVEIROS":"FEIRA SUL","ASA BRANCA":"FEIRA NORTE","BARAUNAS":"FEIRA NORTE","BR 116":"FEIRA NORTE","CAMPO DO GADO NOVO":"FEIRA NORTE","CAMPO LIMPO":"FEIRA NORTE","CAMPO LIMPO I":"FEIRA NORTE","CAMPO LIMPO II":"FEIRA NORTE","CARAIBAS":"FEIRA NORTE","CENTRO MATINHA":"FEIRA NORTE","CENTRO-BOMFIM DE FEIRA":"FEIRA NORTE","CENTRO-ENTRONCAMENTO DE TANQUINHO":"FEIRA NORTE","CENTRO-JAGUARA":"FEIRA NORTE","CENTRO-PEDRA FERRADA":"FEIRA NORTE","CENTRO-SAO JOSE":"FEIRA NORTE","CENTRO-TIQUARUCU":"FEIRA NORTE","CIDADE NOVA":"FEIRA NORTE","GABRIELA":"FEIRA NORTE","GENIPAPO":"FEIRA NORTE","GEORGE AMERICO":"FEIRA NORTE","JARDIM CRUZEIRO":"FEIRA NORTE","JARDIM SUCUPIRA":"FEIRA NORTE","JOAO PAULO II":"FEIRA NORTE","MANGABEIRA":"FEIRA NORTE","MARIA QUITERIA":"FEIRA NORTE","NOVA ESPERANCA":"FEIRA NORTE","NOVO HORIZONTE":"FEIRA NORTE","NOVO MILENIO":"FEIRA NORTE","OVO DA EMA":"FEIRA NORTE","PAMPALONA":"FEIRA NORTE","PAPAGAIO":"FEIRA NORTE","PARQUE IPE":"FEIRA NORTE","PARQUE SABIA":"FEIRA NORTE","PARQUE STO ANTONIO":"FEIRA NORTE","PEDRA FERRADA":"FEIRA NORTE","POVOADO DE MORRINHOS":"FEIRA NORTE","RURAL-BOMFIM DE FEIRA":"FEIRA NORTE","RURAL-CAGADO":"FEIRA NORTE","RURAL-ENTRONCAMENTO DE TANQUINHO":"FEIRA NORTE","RURAL-ESTRADA DO FEIJAO":"FEIRA NORTE","RURAL-FEIRA DE SANTANA":"FEIRA NORTE","RURAL-JAGUARA":"FEIRA NORTE","RURAL-MATINHA":"FEIRA NORTE","RURAL-PEDRA FERRADA":"FEIRA NORTE","RURAL-SAO JOAO":"FEIRA NORTE","RURAL-SAO JOSE":"FEIRA NORTE","RURAL-TIQUARUCU":"FEIRA NORTE","SAO BENTO":"SANTO AMARO","SITIO NOVO":"FEIRA NORTE","SOBRADINHO":"FEIRA NORTE","UNIVERSIDADE":"FEIRA NORTE","ZONA RURAL":"FEIRA NORTE","RURAL MARIA QUITERIA":"FEIRA NORTE","RURAL-PEDRA NOVA":"SANTO AMARO","ALEGRETE":"FEIRA NORTE","ALTO BONITO":"FEIRA NORTE","ALTO DO PORRAO":"FEIRA NORTE","ANTONIO CARDOSO":"FEIRA NORTE","AREAL":"SANTO AMARO","AREIAL":"SANTO AMARO","ASSENTAMENTO DOM MATHIAS":"FEIRA NORTE","BALDEZ":"SANTO AMARO","BATATAN SERRARIA":"SANTO AMARO","BEIRADA":"FEIRA NORTE","BOA HORA":"FEIRA SUL","BOA VISTA":"FEIRA NORTE","BOM JESUS DOS POBRES":"SANTO AMARO","BOMFIM":"SANTO AMARO","BOSQUE":"FEIRA NORTE","BRASILIA - SECLA":"FEIRA SUL","CABECA DO BOI":"FEIRA NORTE","CABORONGA":"FEIRA NORTE","CABUCU":"SANTO AMARO","CAMINHO DO OESTE":"FEIRA NORTE","CAMPO LIMPO - I":"FEIRA NORTE","CAMPO LIMPO - II":"FEIRA NORTE","CANDOLANDIA":"SANTO AMARO","CENTRO - CAICARA":"FEIRA NORTE","CENTRO JACARE":"FEIRA SUL","CENTRO-ACUPE":"SANTO AMARO","CENTRO-AMELIA RODRIGUES":"SANTO AMARO","CENTRO-ANGUERA":"FEIRA NORTE","CENTRO-ARGOIM":"FEIRA NORTE","CENTRO-BOMFIM":"FEIRA NORTE","CENTRO-BRAVO":"FEIRA NORTE","CENTRO-CABACEIRAS":"FEIRA NORTE","CENTRO-CABACEIRAS DO PARAGUASSU":"SANTO AMARO","CENTRO-CACHOEIRA":"SANTO AMARO","CENTRO-CAVUNGE":"FEIRA NORTE","CENTRO-CONCEICAO":"FEIRA SUL","CENTRO-CONCEICAO DO JACUIPE":"SANTO AMARO","CENTRO-COQUEIROS":"SANTO AMARO","CENTRO-CORACAO DE MARIA":"SANTO AMARO","CENTRO-GOVERNADOR MANGABEIRA":"SANTO AMARO","CENTRO-IPECAETA":"FEIRA NORTE","CENTRO-IPIRA":"FEIRA NORTE","CENTRO-IPIRAZINHO":"FEIRA NORTE","CENTRO-JACARE":"FEIRA SUL","CENTRO-MALHADOR":"FEIRA NORTE","CENTRO-MARAGOGIPE":"SANTO AMARO","CENTRO-MERCES":"FEIRA SUL","CENTRO-MORRO DO CURRAL":"FEIRA NORTE","CENTRO-MURITIBA":"SANTO AMARO","CENTRO-PARATINGA":"FEIRA SUL","CENTRO-PAU FERRO":"FEIRA NORTE","CENTRO-PEDRA":"SANTO AMARO","CENTRO-PEDRA NOVA":"SANTO AMARO","CENTRO-PONTO DE SERRA PRETA":"FEIRA NORTE","CENTRO-RAFAEL JAMBEIRO":"FEIRA NORTE","CENTRO-RIO FUNDO":"SANTO AMARO","CENTRO-SANTO AMARO":"SANTO AMARO","CENTRO-SANTO ESTEVAO":"FEIRA NORTE","CENTRO-SAO FELIX":"SANTO AMARO","CENTRO-SAO GONCALO DOS CAMPOS":"FEIRA SUL","CENTRO-SAUBARA":"SANTO AMARO","CENTRO-SERRA PRETA":"FEIRA NORTE","CENTRO-SITIO DO MEIO-CONCEICAO DA FEIRA":"FEIRA SUL","CENTRO-SITIO NOVO":"FEIRA NORTE","CENTRO-TEODORO SAMPAIO":"SANTO AMARO","CENTRO-TERRA NOVA":"SANTO AMARO","CHAPARRAL":"SANTO AMARO","CONGA":"FEIRA NORTE","ESPERANCA":"SANTO AMARO","EST IPECAETA":"FEIRA NORTE","FAZ GAMELEIRA":"FEIRA NORTE","FIUZA":"FEIRA NORTE","GUARIBAS":"FEIRA NORTE","INVASAO NOVA SANTO AMARO":"SANTO AMARO","ITAPICURU":"SANTO AMARO","JACU-RURAL":"SANTO AMARO","JARDIM TEREZOPOLIS":"FEIRA SUL","JOSE SARNEI":"FEIRA SUL","LAGOA DOS MOCOS":"FEIRA NORTE","LAGOA SECA":"FEIRA NORTE","LORO CRENTE":"FEIRA NORTE","LOT PARQUE DIAMANTE":"SANTO AMARO","LOT RECANTO NOVO TOMBA":"FEIRA SUL","LOT ROCINHA":"FEIRA SUL","MARAMBAIA":"FEIRA NORTE","MIRANTE":"FEIRA NORTE","MUSUCA":"FEIRA NORTE","NOVA BRASILIA":"SANTO AMARO","OITIZEIRO":"SANTO AMARO","PARQUE OURO VERDE":"SANTO AMARO","POCO-RURAL":"FEIRA NORTE","QUEIMADA GRANDE":"FEIRA NORTE","RETIRO":"SANTO AMARO","RIO SECO":"SANTO AMARO","ROSARINHO":"FEIRA NORTE","RURAL":"SANTO AMARO","RURAL - AGUA BRANCA":"FEIRA NORTE","RURAL - CABACEIRAS":"FEIRA NORTE","RURAL - CAPUEIRUCU":"SANTO AMARO","RURAL - CEDRO":"SANTO AMARO","RURAL - CONCEICAO DA FEIRA":"FEIRA SUL","RURAL - GENIPAPO":"FEIRA NORTE","RURAL - MANDACARU":"FEIRA NORTE","RURAL - RAFAEL JAMBEIRO":"FEIRA NORTE","RURAL SAO JOSE":"FEIRA NORTE","RURAL-ALECRIM":"SANTO AMARO","RURAL-ALIANCA":"SANTO AMARO","RURAL-AMELIA RODRIGUES":"SANTO AMARO","RURAL-ANGUERA":"FEIRA NORTE","RURAL-AREIA":"FEIRA NORTE","RURAL-BELEM":"SANTO AMARO","RURAL-BOMFIM":"FEIRA NORTE","RURAL-BRAVO":"FEIRA NORTE","RURAL-CAATIGUINHA":"FEIRA NORTE","RURAL-CABACEIRAS DO PARAGUASSU":"SANTO AMARO","RURAL-CACHOEIRA":"SANTO AMARO","RURAL-CAIXA D AGUA":"FEIRA NORTE","RURAL-CANTA GALO":"SANTO AMARO","RURAL-CAPANEMA":"SANTO AMARO","RURAL-CONCEICAO DO JACUIPE":"SANTO AMARO","RURAL-CORACAO DE MARIA":"SANTO AMARO","RURAL-GEOLANDIA":"SANTO AMARO","RURAL-GOVERNADOR MANGABEIRA":"SANTO AMARO","RURAL-IPECAETA":"FEIRA NORTE","RURAL-IPIRA":"FEIRA NORTE","RURAL-IPUACU":"FEIRA NORTE","RURAL-JACARE":"FEIRA SUL","RURAL-JOAO VELHO":"FEIRA NORTE","RURAL-MANGABEIRA":"FEIRA NORTE","RURAL-MARAGOGIPE":"SANTO AMARO","RURAL-MERCES":"FEIRA SUL","RURAL-MORRO DO CURRAL":"FEIRA NORTE","RURAL-MURITIBA":"SANTO AMARO","RURAL-OLIVEIRA DOS CAMPINHOS":"SANTO AMARO","RURAL-PAU FERRO":"FEIRA NORTE","RURAL-PE DE SERRA":"SERRINHA","RURAL-PIEDADE":"SANTO AMARO","RURAL-PINTADAS":"FEIRA NORTE","RURAL-PONTO DE SERRA PRETA":"FEIRA NORTE","RURAL-SANTO AMARO":"SANTO AMARO","RURAL-SANTO ESTEVAO":"FEIRA NORTE","RURAL-SAO FELIX":"SANTO AMARO","RURAL-SAO FRANCISCO DO PARAGUACU":"SANTO AMARO","RURAL-SAO GONCALO DOS CAMPOS":"FEIRA SUL","RURAL-SAO JOSE DE ITAPORA":"SANTO AMARO","RURAL-SAO ROQUE":"FEIRA NORTE","RURAL-SAO TIAGO DO IGUAPE":"SANTO AMARO","RURAL-SERRA PRETA":"FEIRA NORTE","RURAL-SITIO DO MEIO":"FEIRA SUL","RURAL-TANQUINHO":"SERRINHA","SACRAMENTO":"SANTO AMARO","SANTO ANTONIO":"FEIRA SUL","SAO SIMAO-RURAL":"SANTO AMARO","SENHOR DO BOMFIM":"FEIRA NORTE","SERRA":"SANTO AMARO","SINIBU":"SANTO AMARO","SUCUPIRA":"SANTO AMARO","TANQUE SENZALA":"SANTO AMARO","TANQUINHO":"SERRINHA","TRAPICHE DE BAIXO":"SANTO AMARO","XAN":"SANTO AMARO","PATRONATO":"SANTO AMARO","LOTEAMENTE MIRANTE":"FEIRA NORTE","VILA NOVA":"SANTO AMARO","CENTRO-SITIO DO MEIO":"FEIRA SUL","CENTO E QUINZE":"SANTO AMARO","RURAL-OLEIROS":"FEIRA NORTE","LAGEDO":"FEIRA NORTE","CALDEIRAO DA LEVADA":"FEIRA NORTE","RURAL-RIO FUNDO":"SANTO AMARO","CENTRO-PINTADAS":"FEIRA NORTE","CAMPO ALEGRE":"SANTO AMARO","MURILO LEITE":"FEIRA SUL","RURAL-PEDRA":"SANTO AMARO","ILICURITIBA":"SANTO AMARO","RURAL-MALHADOR":"FEIRA NORTE","LAGOA AZUL":"FEIRA NORTE","BOA ESPERANCA":"SANTO AMARO","VOLTA":"SANTO AMARO","RURAL-UMBURANAS":"FEIRA NORTE","LOT 7 DE JULHO":"FEIRA NORTE","CENTRO-RIO DO PEIXE":"FEIRA NORTE","CENTRO-OLIVEIRA DOS CAMPINHOS":"SANTO AMARO","CENTRO-SAO ROQUE PARAGUACU":"SANTO AMARO","CENTRO-INHATA":"SANTO AMARO","RURAL - CAICARA":"FEIRA NORTE","LOT GUADALARRARA":"FEIRA NORTE","RURAL-RIO DO PEIXE":"FEIRA NORTE","AMPARO":"SANTO AMARO","LOTEAMENTO JAIME GAZAR":"SANTO AMARO","BATATAN SERRARIA II":"SANTO AMARO","BOLANDEIRA":"SANTO AMARO","RURAL-CARPINA - II":"SANTO AMARO","CENTRO-NAGE":"SANTO AMARO","CENTRO-SAO ROQUE":"SANTO AMARO","SERAFIM":"SANTO AMARO","TUPIACU":"SANTO AMARO","BURACICA-RURAL":"SANTO AMARO","RURAL-ACUPE":"SANTO AMARO","NOVA VISTA":"FEIRA NORTE","ALTO DAS FLORES":"FEIRA NORTE","BOI MANSO":"FEIRA NORTE","CIDADE JARDIM":"FEIRA SUL","NOVA VIDA":"FEIRA SUL","CAMUCURSO":"SANTO AMARO","TANQUE":"FEIRA NORTE","CENTRO-LUSTOSA":"SANTO AMARO","RURAL - CONGUINHO":"FEIRA NORTE","CENTRO-ENSEADINHA":"SANTO AMARO","MAQUINE":"FEIRA NORTE","PONTAL ITAPORANGA":"SANTO AMARO","CALDEIRAO DA VELHA":"FEIRA NORTE","RURAL - INHATA":"SANTO AMARO","RURAL - BAIXA FRIA":"FEIRA NORTE","RURAL - MAO DE ONCA":"FEIRA NORTE","COURO CRU":"FEIRA NORTE","GOLFO":"FEIRA NORTE","RURAL-BOCA DA MATA":"FEIRA NORTE","ARIRI":"FEIRA NORTE","GAMELEIRA-GAMELEIRA":"FEIRA NORTE","LOTEAMENTO CAIXA D AGUA":"SANTO AMARO","JARDIM VERDE VALE":"SANTO AMARO","CENTRO-ANTONIO CARDOSO":"FEIRA NORTE","PETROLINA":"FEIRA NORTE","RURAL-TEODORO SAMPAIO":"SANTO AMARO","BARAUNA":"FEIRA NORTE","MATINHA":"FEIRA NORTE","RURAL-MARIA QUITERIA":"FEIRA NORTE","RURAL-ESTRADA PE DE SERRA":"FEIRA NORTE","RESID ATLANTIC VILLE":"FEIRA SUL","RESIDENCIAL VIVA SIM":"FEIRA SUL","MANTIBA":"FEIRA NORTE","J DOS NAMORADOS":"FEIRA NORTE"};
+  var UTD_ALIAS = { 'FEIRA NORTE': 'FEIRA DE SANTANA NORTE', 'FEIRA SUL': 'FEIRA DE SANTANA SUL' };
+
+  function resolveUnitJS(localidade, bairro) {
+    var locN = normJS(localidade);
+    if (locN === 'FEIRA DE SANTANA') {
+      var utd = BAIRRO_MAP[normJS(bairro)];
+      if (!utd) return null;
+      return UTD_ALIAS[utd] || utd;
+    }
+    var utd2 = LOC_MAP[locN];
+    if (!utd2) return null;
+    return UTD_ALIAS[utd2] || utd2;
+  }
+
+  function categorizeTipo(tipo) {
+    if (!tipo) return null;
+    var t = String(tipo).trim().toUpperCase();
+    var parts = t.split(/\s+/);
+    var first = parts.length ? parts[0] : '';
+    if (first === 'RECORTE' || first === 'BAIXA' || first === 'CORTE') return first;
+    return null;
+  }
+
+  function normUnitLabel(name) {
+    if (!name) return null;
+    var n = String(name).toUpperCase();
+    n = n.replace(/\s*-\s*STC\s*$/, '');
+    n = stripAccentsJS(n);
+    n = n.trim();
+    return n.replace(/\s+/g, ' ');
+  }
+
+  var DISPLAY_FIX = {
+    'BARREIRAS':'Barreiras','BOM JESUS DA LAPA':'Bom Jesus da Lapa','BRUMADO':'Brumado',
+    'GUANAMBI':'Guanambi','IBOTIRAMA':'Ibotirama','IRECE':'Irecê','ITABERABA':'Itaberaba',
+    'ITAPETINGA':'Itapetinga','JEQUIE':'Jequié','LIVRAMENTO DE NOSSA SENHORA':'Livramento de Nossa Senhora',
+    'LUIS EDUARDO MAGALHAES':'Luís Eduardo Magalhães','SANTA MARIA DA VITORIA':'Santa Maria da Vitória',
+    'SEABRA':'Seabra','VITORIA DA CONQUISTA':'Vitória da Conquista','CONCEICAO DO COITE':'Conceição do Coité',
+    'FEIRA DE SANTANA NORTE':'Feira de Santana Norte','FEIRA DE SANTANA SUL':'Feira de Santana Sul',
+    'SANTO AMARO':'Santo Amaro','SERRINHA':'Serrinha'
+  };
+  function displayName(n) {
+    if (DISPLAY_FIX.hasOwnProperty(n)) return DISPLAY_FIX[n];
+    return n.toLowerCase().replace(/(^|\s)([a-zà-ú])/g, function (m, sep, ch) { return sep + ch.toUpperCase(); });
+  }
+
+  function parseDateFlexible(s) {
+    if (!s) return null;
+    s = String(s).trim();
+    if (!s) return null;
+    var datePart = s.split(' ')[0];
+    var m = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    m = datePart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    return null;
+  }
+  function isoDate(d) {
+    var y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+  function jsWeekdayMon0(d) { return (d.getDay() + 6) % 7; } // Mon=0 .. Sun=6, like Python's date.weekday()
+  function round1(n) { return Math.round(n * 10) / 10; }
+  function round2(n) { return Math.round(n * 100) / 100; }
+  function sumBy(rows, key) { return rows.reduce(function (s, r) { return s + r[key]; }, 0); }
+
+  function parseMetaRows(rows) {
+    var meta = {}, currentUnit = null;
+    for (var i = 1; i < rows.length; i++) {
+      var row = rows[i];
+      if (!row || !row.length) continue;
+      var label = row[0];
+      if (label === undefined || label === null || String(label).trim() === '') continue;
+      var labelS = String(label).trim();
+      if (labelS === 'BAIXA' || labelS === 'CORTE' || labelS === 'RECORTE') {
+        if (currentUnit !== null) {
+          var raw = (row[1] === undefined || row[1] === null) ? '' : String(row[1]).trim();
+          var v = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
+          if (isNaN(v)) v = parseFloat(raw);
+          meta[currentUnit][labelS] = isNaN(v) ? 0 : v;
+        }
+      } else {
+        currentUnit = normUnitLabel(labelS);
+        meta[currentUnit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+      }
+    }
+    return meta;
+  }
+
+  async function computeLiveData() {
+    var execRows = await fetchSheetRows('EXECUTADOS');
+    var metaRows = await fetchSheetRows('BASES DE META');
+    if (!execRows.length) throw new Error('A aba EXECUTADOS voltou vazia.');
+    if (!metaRows.length) throw new Error('A aba BASES DE META voltou vazia.');
+
+    var meta = parseMetaRows(metaRows);
+    if (!Object.keys(meta).length) throw new Error('Não foi possível interpretar as metas da aba BASES DE META.');
+
+    var header = execRows[0];
+    var idx = {};
+    header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+    var iTipo = idx['tipo_servico'], iBairro = idx['Bairro'], iLoc = idx['Localidade'], iData = idx['dta_exec_srv'];
+    if (iTipo === undefined || iBairro === undefined || iLoc === undefined || iData === undefined) {
+      throw new Error('O cabeçalho da aba EXECUTADOS não tem as colunas esperadas (tipo_servico / Bairro / Localidade / dta_exec_srv).');
+    }
+
+    var realizado = {}, dailyAll = {}, dailyByUnit = {}, maxDate = null;
+    for (var r = 1; r < execRows.length; r++) {
+      var row = execRows[r];
+      if (!row || !row.length) continue;
+      var cat = categorizeTipo(row[iTipo]);
+      if (!cat) continue;
+      var unit = resolveUnitJS(row[iLoc], row[iBairro]);
+      if (!unit || !meta.hasOwnProperty(unit)) continue;
+      if (!realizado[unit]) realizado[unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+      realizado[unit][cat] += 1;
+
+      var d = parseDateFlexible(row[iData]);
+      if (d) {
+        var dstr = isoDate(d);
+        if (!dailyAll[dstr]) dailyAll[dstr] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+        dailyAll[dstr][cat] += 1;
+        if (!dailyByUnit[unit]) dailyByUnit[unit] = {};
+        if (!dailyByUnit[unit][dstr]) dailyByUnit[unit][dstr] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+        dailyByUnit[unit][dstr][cat] += 1;
+        if (!maxDate || d > maxDate) maxDate = d;
+      }
+    }
+    if (!maxDate) throw new Error('Nenhuma data de execução válida foi encontrada na aba EXECUTADOS.');
+
+    var AS_OF = maxDate;
+    var year = AS_OF.getFullYear(), month = AS_OF.getMonth();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var monthDays = [];
+    for (var dd = 1; dd <= daysInMonth; dd++) monthDays.push(new Date(year, month, dd));
+
+    function dayCounts(weekdays) {
+      var total = monthDays.filter(function (d) { return weekdays.indexOf(jsWeekdayMon0(d)) !== -1; });
+      var elapsed = total.filter(function (d) { return d <= AS_OF; });
+      return [total.length, elapsed.length];
+    }
+    var CAT_WEEKDAYS = { CORTE: [0, 1, 2, 3], RECORTE: [0, 1, 2, 3, 4], BAIXA: [0, 1, 2, 3, 4] };
+    var CAT_RULE_LABEL = { CORTE: 'seg-qui', RECORTE: 'seg-sex', BAIXA: 'seg-sex' };
+    var DAYS = {};
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
+      var tc = dayCounts(CAT_WEEKDAYS[cat]);
+      DAYS[cat] = { total: tc[0], elapsed: tc[1], remaining: tc[0] - tc[1], rule: CAT_RULE_LABEL[cat] };
+    });
+
+    function buildCategory(cat) {
+      var totalDays = DAYS[cat].total, elapsedDays = DAYS[cat].elapsed;
+      var units = Object.keys(meta).sort();
+      var rows = units.map(function (u) {
+        var metaMes = meta[u][cat] || 0;
+        var real = (realizado[u] && realizado[u][cat]) || 0;
+        var metaProp = totalDays ? metaMes * (elapsedDays / totalDays) : 0;
+        var pctProp = metaProp > 0 ? (real / metaProp * 100) : (real === 0 ? 100.0 : 999.0);
+        var faltaProp = Math.max(metaProp - real, 0);
+        var metaDiaria = totalDays ? metaMes / totalDays : 0;
+        var devendo = Math.max(metaDiaria * elapsedDays - real, 0);
+        var diasAtraso = metaDiaria > 0 ? (devendo / metaDiaria) : 0;
+        var faltaMes = Math.max(metaMes - real, 0);
+        return {
+          unidade: displayName(u), meta_mes: metaMes, meta_prop: round1(metaProp), realizado: real,
+          pct_prop: round1(pctProp), falta_prop: round1(faltaProp), falta_mes: faltaMes,
+          meta_diaria: round1(metaDiaria), devendo: round1(devendo), dias_atraso: round2(diasAtraso)
+        };
+      });
+      var totMetaProp = sumBy(rows, 'meta_prop'), totReal = sumBy(rows, 'realizado');
+      var totals = {
+        meta_mes: sumBy(rows, 'meta_mes'), meta_prop: round1(totMetaProp), realizado: totReal,
+        pct_prop: totMetaProp ? round1(totReal / totMetaProp * 100) : 0,
+        falta_prop: round1(sumBy(rows, 'falta_prop')), falta_mes: sumBy(rows, 'falta_mes'),
+        meta_diaria: round1(sumBy(rows, 'meta_diaria')), devendo: round1(sumBy(rows, 'devendo')),
+        dias_atraso: 0
+      };
+      totals.dias_atraso = totals.meta_diaria ? round2(totals.devendo / totals.meta_diaria) : 0;
+      return { rows: rows, totals: totals };
+    }
+
+    var dataset = {};
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) { dataset[cat] = buildCategory(cat); });
+
+    var FIELDS_SUM = ['meta_mes', 'meta_prop', 'realizado', 'falta_prop', 'falta_mes', 'meta_diaria', 'devendo'];
+    var byUnit = {};
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
+      dataset[cat].rows.forEach(function (r) {
+        var u = r.unidade;
+        if (!byUnit[u]) { byUnit[u] = {}; FIELDS_SUM.forEach(function (k) { byUnit[u][k] = 0; }); }
+        FIELDS_SUM.forEach(function (k) { byUnit[u][k] += r[k]; });
+      });
+    });
+    var totalRows = Object.keys(byUnit).sort().map(function (u) {
+      var acc = byUnit[u];
+      var pctProp = acc.meta_prop > 0 ? (acc.realizado / acc.meta_prop * 100) : (acc.realizado === 0 ? 100.0 : 999.0);
+      var diasAtraso = acc.meta_diaria > 0 ? (acc.devendo / acc.meta_diaria) : 0;
+      var row = { unidade: u };
+      FIELDS_SUM.forEach(function (k) {
+        row[k] = (k === 'meta_prop' || k === 'falta_prop' || k === 'meta_diaria' || k === 'devendo') ? round1(acc[k]) : acc[k];
+      });
+      row.pct_prop = round1(pctProp); row.dias_atraso = round2(diasAtraso);
+      return row;
+    });
+    var tTotMetaProp = sumBy(totalRows, 'meta_prop'), tTotReal = sumBy(totalRows, 'realizado');
+    var totalTotals = {
+      meta_mes: sumBy(totalRows, 'meta_mes'), meta_prop: round1(tTotMetaProp), realizado: tTotReal,
+      pct_prop: tTotMetaProp ? round1(tTotReal / tTotMetaProp * 100) : 0,
+      falta_prop: round1(sumBy(totalRows, 'falta_prop')), falta_mes: sumBy(totalRows, 'falta_mes'),
+      meta_diaria: round1(sumBy(totalRows, 'meta_diaria')), devendo: round1(sumBy(totalRows, 'devendo')),
+      dias_atraso: 0
+    };
+    totalTotals.dias_atraso = totalTotals.meta_diaria ? round2(totalTotals.devendo / totalTotals.meta_diaria) : 0;
+    dataset['TOTAL'] = { rows: totalRows, totals: totalTotals };
+
+    var dates = Object.keys(dailyAll).sort();
+    var dailyAllOut = dates.map(function (d) {
+      var v = dailyAll[d];
+      return { date: d, CORTE: v.CORTE, RECORTE: v.RECORTE, BAIXA: v.BAIXA };
+    });
+    var dailyByUnitOut = {};
+    Object.keys(dailyByUnit).sort().forEach(function (u) {
+      var disp = displayName(u);
+      dailyByUnitOut[disp] = dates.map(function (d) {
+        var v = (dailyByUnit[u] && dailyByUnit[u][d]) || { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+        return { date: d, CORTE: v.CORTE || 0, RECORTE: v.RECORTE || 0, BAIXA: v.BAIXA || 0 };
+      });
+    });
+
+    return { as_of: isoDate(AS_OF), days: DAYS, dataset: dataset, dates: dates, daily_all: dailyAllOut, daily_by_unit: dailyByUnitOut };
+  }
+
+  document.getElementById('topbar-meta').textContent = 'Carregando dados da planilha...';
+  document.getElementById('subtitle').textContent = 'Buscando dados atualizados na planilha do Google Sheets...';
+  var DATA;
+  try {
+    DATA = await computeLiveData();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('topbar-meta').textContent = 'Erro ao carregar dados';
+    document.getElementById('subtitle').textContent = 'Não foi possível carregar os dados da planilha agora (' + err.message + '). Recarregue a página em alguns instantes.';
+    return;
+  }
 
   var CAT_META = {
     TOTAL:   { label: 'Total',   sub: 'corte + recorte + baixa', unitLabel: 'serviços', color: 'var(--accent)' },
