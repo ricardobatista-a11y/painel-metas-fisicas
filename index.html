@@ -452,10 +452,9 @@
   }
 
   // Agrupamento de unidades por contrato/região, informado pelo usuário.
-  // Chave = nome de exibição (displayName). "Seabra" não foi incluído na
-  // lista que o usuário passou — fica em "Outras" até ele confirmar o contrato certo.
-  var REGION_ORDER = ['CENTRO', 'CENTRO_OESTE', 'OESTE', 'SUDOESTE', 'OUTRAS'];
-  var REGION_LABEL = { CENTRO: 'Centro', CENTRO_OESTE: 'Centro Oeste', OESTE: 'Oeste', SUDOESTE: 'Sudoeste', OUTRAS: 'Outras' };
+  // Chave = nome de exibição (displayName).
+  var REGION_ORDER = ['CENTRO', 'CENTRO_OESTE', 'OESTE', 'SUDOESTE'];
+  var REGION_LABEL = { CENTRO: 'Centro', CENTRO_OESTE: 'Centro Oeste', OESTE: 'Oeste', SUDOESTE: 'Sudoeste' };
   var REGION_MAP = {
     'Feira de Santana Norte': 'CENTRO', 'Feira de Santana Sul': 'CENTRO', 'Santo Amaro': 'CENTRO',
     'Serrinha': 'CENTRO', 'Conceição do Coité': 'CENTRO',
@@ -463,7 +462,7 @@
     'Barreiras': 'OESTE', 'Luís Eduardo Magalhães': 'OESTE', 'Bom Jesus da Lapa': 'OESTE',
     'Santa Maria da Vitória': 'OESTE', 'Ibotirama': 'OESTE',
     'Guanambi': 'SUDOESTE', 'Itapetinga': 'SUDOESTE', 'Vitória da Conquista': 'SUDOESTE', 'Brumado': 'SUDOESTE',
-    'Seabra': 'OUTRAS'
+    'Seabra': 'CENTRO_OESTE'
   };
 
   function parseDateFlexible(s) {
