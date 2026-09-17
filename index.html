@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard Metas Físicas</title>
-<meta name="description" content="Realizado vs. meta proporcional por unidade — Sirtec Inovação">
+<meta name="description" content="Realizado vs. meta proporcional por unidade — Sirtec Sistemas Eletricos">
 <meta property="og:title" content="Dashboard Metas Físicas">
-<meta property="og:description" content="Realizado vs. meta proporcional por unidade — Sirtec Inovação">
+<meta property="og:description" content="Realizado vs. meta proporcional por unidade — Sirtec Sistemas Eletricos">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0a1425">
 <style>
@@ -76,7 +76,8 @@
 
   .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .stat-row.small { grid-template-columns: repeat(4, 1fr); margin-top: 14px; }
-  @media (max-width: 640px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-row.five { grid-template-columns: repeat(5, 1fr); }
+  @media (max-width: 640px) { .stat-row { grid-template-columns: repeat(2, 1fr); } .stat-row.five { grid-template-columns: repeat(2, 1fr); } }
   .stat {
     background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
     padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
@@ -192,7 +193,7 @@
 <div class="viz-root">
 
   <div class="topbar">
-    <div class="brand"><span class="brand-icon">⚡</span><span class="brand-name">Sirtec Inovação</span></div>
+    <div class="brand"><span class="brand-icon">⚡</span><span class="brand-name">SIRTEC SISTEMAS ELETRICOS</span></div>
     <div class="topbar-meta" id="topbar-meta"></div>
   </div>
 
@@ -206,14 +207,14 @@
   <div class="wrap" id="view-d1">
 
     <header class="page-head">
-      <span class="eyebrow">Consulta de serviços SIR357074</span>
       <h1>Realizado vs. meta proporcional, por unidade</h1>
       <p class="subtitle" id="subtitle"></p>
     </header>
 
     <div class="tabs" id="tabs"></div>
+    <div class="tabs" id="region-tabs"></div>
 
-    <div class="stat-row" id="stat-row"></div>
+    <div class="stat-row five" id="stat-row"></div>
 
     <section class="panel">
       <div class="panel-head">
@@ -303,7 +304,6 @@
   <div class="wrap" id="view-d0" style="display:none;">
 
     <header class="page-head">
-      <span class="eyebrow">Consulta de serviços SIR357074</span>
       <h1>Tempo real — progresso de hoje</h1>
       <p class="subtitle" id="d0-subtitle"></p>
     </header>
@@ -451,6 +451,21 @@
     return n.toLowerCase().replace(/(^|\s)([a-zà-ú])/g, function (m, sep, ch) { return sep + ch.toUpperCase(); });
   }
 
+  // Agrupamento de unidades por contrato/região, informado pelo usuário.
+  // Chave = nome de exibição (displayName). "Seabra" não foi incluído na
+  // lista que o usuário passou — fica em "Outras" até ele confirmar o contrato certo.
+  var REGION_ORDER = ['CENTRO', 'CENTRO_OESTE', 'OESTE', 'SUDOESTE', 'OUTRAS'];
+  var REGION_LABEL = { CENTRO: 'Centro', CENTRO_OESTE: 'Centro Oeste', OESTE: 'Oeste', SUDOESTE: 'Sudoeste', OUTRAS: 'Outras' };
+  var REGION_MAP = {
+    'Feira de Santana Norte': 'CENTRO', 'Feira de Santana Sul': 'CENTRO', 'Santo Amaro': 'CENTRO',
+    'Serrinha': 'CENTRO', 'Conceição do Coité': 'CENTRO',
+    'Irecê': 'CENTRO_OESTE', 'Itaberaba': 'CENTRO_OESTE', 'Jequié': 'CENTRO_OESTE', 'Livramento de Nossa Senhora': 'CENTRO_OESTE',
+    'Barreiras': 'OESTE', 'Luís Eduardo Magalhães': 'OESTE', 'Bom Jesus da Lapa': 'OESTE',
+    'Santa Maria da Vitória': 'OESTE', 'Ibotirama': 'OESTE',
+    'Guanambi': 'SUDOESTE', 'Itapetinga': 'SUDOESTE', 'Vitória da Conquista': 'SUDOESTE', 'Brumado': 'SUDOESTE',
+    'Seabra': 'OUTRAS'
+  };
+
   function parseDateFlexible(s) {
     if (!s) return null;
     s = String(s).trim();
@@ -470,6 +485,20 @@
   function round1(n) { return Math.round(n * 10) / 10; }
   function round2(n) { return Math.round(n * 100) / 100; }
   function sumBy(rows, key) { return rows.reduce(function (s, r) { return s + r[key]; }, 0); }
+
+  // Reaggregates D-1 totals from a (possibly filtered, e.g. by região/contrato) subset of rows.
+  function aggregateD1Totals(rows) {
+    var totMetaProp = sumBy(rows, 'meta_prop'), totReal = sumBy(rows, 'realizado');
+    var totals = {
+      meta_mes: sumBy(rows, 'meta_mes'), meta_prop: round1(totMetaProp), realizado: totReal,
+      pct_prop: totMetaProp ? round1(totReal / totMetaProp * 100) : 0,
+      falta_prop: round1(sumBy(rows, 'falta_prop')), falta_mes: sumBy(rows, 'falta_mes'),
+      meta_diaria: round1(sumBy(rows, 'meta_diaria')), devendo: round1(sumBy(rows, 'devendo')),
+      dias_atraso: 0
+    };
+    totals.dias_atraso = totals.meta_diaria ? round2(totals.devendo / totals.meta_diaria) : 0;
+    return totals;
+  }
 
   function parseMetaRows(rows) {
     var meta = {}, currentUnit = null;
@@ -573,15 +602,7 @@
           meta_diaria: round1(metaDiaria), devendo: round1(devendo), dias_atraso: round2(diasAtraso)
         };
       });
-      var totMetaProp = sumBy(rows, 'meta_prop'), totReal = sumBy(rows, 'realizado');
-      var totals = {
-        meta_mes: sumBy(rows, 'meta_mes'), meta_prop: round1(totMetaProp), realizado: totReal,
-        pct_prop: totMetaProp ? round1(totReal / totMetaProp * 100) : 0,
-        falta_prop: round1(sumBy(rows, 'falta_prop')), falta_mes: sumBy(rows, 'falta_mes'),
-        meta_diaria: round1(sumBy(rows, 'meta_diaria')), devendo: round1(sumBy(rows, 'devendo')),
-        dias_atraso: 0
-      };
-      totals.dias_atraso = totals.meta_diaria ? round2(totals.devendo / totals.meta_diaria) : 0;
+      var totals = aggregateD1Totals(rows);
       return { rows: rows, totals: totals };
     }
 
@@ -844,6 +865,7 @@
   var CAT_ORDER = ['TOTAL', 'CORTE', 'RECORTE', 'BAIXA'];
   var CAT_COLOR_HEX = { CORTE: '#2bd490', RECORTE: '#ff5c66', BAIXA: '#ffc94a' };
   var currentCat = 'TOTAL';
+  var currentRegion = 'ALL';
 
   // Corte só tem meta seg-qui; recorte e baixa têm meta seg-sex (podem ser executados
   // em qualquer dia útil, só não têm meta sáb/dom).
@@ -872,7 +894,10 @@
   });
 
   function fmt(n) { return Math.round(n).toLocaleString('pt-BR'); }
-  function fmt1(n) { return n.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}); }
+  // Arredondado para cima (ceiling), sem casas decimais — a pedido do usuário,
+  // para números proporcionais/derivados (meta proporcional, faltam, etc.)
+  // não aparecerem mais com vírgula.
+  function fmt1(n) { return Math.ceil(n).toLocaleString('pt-BR'); }
   function tier(pct) { return pct >= 100 ? 'good' : (pct >= 60 ? 'warning' : 'critical'); }
   function paceTier(diasAtraso) { return diasAtraso <= 0 ? 'good' : (diasAtraso < 3 ? 'warning' : 'critical'); }
   function fmtDate(iso) { var p = iso.split('-'); return p[2] + '/' + p[1]; }
@@ -938,6 +963,34 @@
     tabsEl.appendChild(btn);
   });
 
+  // ---- região/contrato tabs ----
+  var regionTabsEl = document.getElementById('region-tabs');
+  var regionBtnAll = document.createElement('button');
+  regionBtnAll.type = 'button';
+  regionBtnAll.className = 'tab-btn active';
+  regionBtnAll.dataset.region = 'ALL';
+  regionBtnAll.innerHTML = '<span>Todos os contratos</span>';
+  regionTabsEl.appendChild(regionBtnAll);
+  REGION_ORDER.forEach(function (rg) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn';
+    btn.dataset.region = rg;
+    btn.innerHTML = '<span>' + REGION_LABEL[rg] + '</span>';
+    regionTabsEl.appendChild(btn);
+  });
+  Array.prototype.forEach.call(regionTabsEl.querySelectorAll('.tab-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      currentRegion = btn.dataset.region;
+      Array.prototype.forEach.call(regionTabsEl.querySelectorAll('.tab-btn'), function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      rebuildUnitOptions();
+      renderDailyChart();
+      render();
+    });
+  });
+
   // ---- daily chart: date + unit filters ----
   var allDates = DATA.dates;
   var dateStartInput = document.getElementById('date-start');
@@ -951,20 +1004,40 @@
     dateEndInput.value = allDates[allDates.length - 1];
   }
 
-  var unitOpt = document.createElement('option');
-  unitOpt.value = '__ALL__';
-  unitOpt.textContent = 'Todas as unidades';
-  unitSelect.appendChild(unitOpt);
-  Object.keys(DATA.daily_by_unit).sort().forEach(function (u) {
-    var o = document.createElement('option');
-    o.value = u; o.textContent = u;
-    unitSelect.appendChild(o);
-  });
+  function rebuildUnitOptions() {
+    var prev = unitSelect.value;
+    clearChildren(unitSelect);
+    var unitOpt = document.createElement('option');
+    unitOpt.value = '__ALL__';
+    unitOpt.textContent = currentRegion === 'ALL' ? 'Todas as unidades' : 'Todas do contrato';
+    unitSelect.appendChild(unitOpt);
+    Object.keys(DATA.daily_by_unit).sort().filter(function (u) {
+      return currentRegion === 'ALL' || REGION_MAP[u] === currentRegion;
+    }).forEach(function (u) {
+      var o = document.createElement('option');
+      o.value = u; o.textContent = u;
+      unitSelect.appendChild(o);
+    });
+    // keep the previous selection if it's still a valid option under the new region filter
+    var stillValid = Array.prototype.some.call(unitSelect.options, function (o) { return o.value === prev; });
+    unitSelect.value = stillValid ? prev : '__ALL__';
+  }
+  rebuildUnitOptions();
 
   function getDailySeries() {
     var u = unitSelect.value;
-    if (u === '__ALL__' || !u) return DATA.daily_all;
-    return DATA.daily_by_unit[u] || [];
+    if (u !== '__ALL__' && u) return DATA.daily_by_unit[u] || [];
+    if (currentRegion === 'ALL') return DATA.daily_all;
+    // "Todas as unidades" dentro de um contrato: soma dia a dia só as unidades daquele contrato.
+    var units = Object.keys(DATA.daily_by_unit).filter(function (un) { return REGION_MAP[un] === currentRegion; });
+    var byDate = {};
+    units.forEach(function (un) {
+      (DATA.daily_by_unit[un] || []).forEach(function (d) {
+        if (!byDate[d.date]) byDate[d.date] = { date: d.date, CORTE: 0, RECORTE: 0, BAIXA: 0 };
+        byDate[d.date].CORTE += d.CORTE; byDate[d.date].RECORTE += d.RECORTE; byDate[d.date].BAIXA += d.BAIXA;
+      });
+    });
+    return Object.keys(byDate).sort().map(function (k) { return byDate[k]; });
   }
 
   function renderDailyChart() {
@@ -1019,8 +1092,9 @@
     var totRecorte = filtered.reduce(function (s, d) { return s + d.RECORTE; }, 0);
     var totBaixa = filtered.reduce(function (s, d) { return s + d.BAIXA; }, 0);
 
+    var regionNote = currentRegion === 'ALL' ? '' : ' · contrato ' + REGION_LABEL[currentRegion];
     document.getElementById('daily-note').textContent = filtered.length + ' dia(s) no período · ' +
-      (unitSelect.value === '__ALL__' ? 'todas as unidades' : unitSelect.value);
+      (unitSelect.value === '__ALL__' ? (currentRegion === 'ALL' ? 'todas as unidades' : 'todas do contrato') : unitSelect.value) + regionNote;
 
     renderStatRow(document.getElementById('daily-stat-row'), [
       { label: 'Corte no período', value: fmt(totCorte), sub: 'serviços concluídos', color: 'var(--corte)', accent: true },
@@ -1043,8 +1117,8 @@
     var cat = currentCat;
     var meta = CAT_META[cat];
     var d = DATA.dataset[cat];
-    var rows = d.rows;
-    var totals = d.totals;
+    var rows = currentRegion === 'ALL' ? d.rows : d.rows.filter(function (r) { return REGION_MAP[r.unidade] === currentRegion; });
+    var totals = currentRegion === 'ALL' ? d.totals : aggregateD1Totals(rows);
 
     document.getElementById('subtitle').textContent =
       'Serviços concluídos (aba "Executados") comparados à meta cadastrada, proporcionalizada até hoje — ' + ruleSentence(cat) + '. Categoria: ' + meta.label + '.';
@@ -1055,7 +1129,8 @@
     var nUnits = rows.length;
 
     renderStatRow(document.getElementById('stat-row'), [
-      { label: 'Meta proporcional (até hoje)', value: fmt1(totals.meta_prop), sub: daysSub(cat) + ' · meta do mês: ' + fmt(totals.meta_mes) },
+      { label: 'Meta mensal', value: fmt(totals.meta_mes), sub: 'meta do mês inteiro' },
+      { label: 'Meta proporcional (até hoje)', value: fmt1(totals.meta_prop), sub: daysSub(cat) },
       { label: 'Realizado', value: fmt(totals.realizado), sub: meta.unitLabel + ' concluídos', accent: true, color: meta.color },
       { label: 'Atingimento (proporcional)', value: fmt1(totals.pct_prop) + '%', sub: 'vs. meta até hoje' },
       { label: 'Faltam (proporcional)', value: fmt1(totals.falta_prop), sub: 'para ficar em dia com hoje' }
@@ -1188,7 +1263,8 @@
       '<tr><td>Total</td><td>' + fmt(totals.falta_mes) + '</td><td>' + fmt1(totals.meta_diaria) + '</td><td>' + fmt1(totals.devendo) + '</td><td>' + fmt1(totals.dias_atraso) + '</td></tr>';
 
     document.getElementById('footnote').innerHTML =
-      'Categoria selecionada: <b>' + meta.label + '</b> (' + meta.sub + '). Total = soma de corte + recorte + baixa, por unidade. Todas as 19 unidades têm meta cadastrada nesta base.<br>' +
+      'Categoria selecionada: <b>' + meta.label + '</b> (' + meta.sub + '). Total = soma de corte + recorte + baixa, por unidade. ' +
+      (currentRegion === 'ALL' ? 'Todas as ' + nUnits + ' unidades têm meta cadastrada nesta base.' : 'Contrato <b>' + REGION_LABEL[currentRegion] + '</b>: ' + nUnits + ' unidade(s).') + '<br>' +
       'Corte só tem meta de segunda a quinta (' + DATA.days.CORTE.total + ' dias em setembro/2026, ' + DATA.days.CORTE.elapsed + ' já decorridos até ' + fmtDate2(DATA.as_of) + '). Recorte e baixa ADM podem ser executados em qualquer dia útil e têm meta de segunda a sexta (' + DATA.days.RECORTE.total + ' dias no mês, ' + DATA.days.RECORTE.elapsed + ' já decorridos). Sábado e domingo nunca entram na conta, nem como dia decorrido nem como dia de meta, em nenhuma categoria. No Total, cada categoria é proporcionalizada pela sua própria regra de dias e depois somada.<br>' +
       'Meta proporcional = meta do mês × (dias úteis decorridos até hoje ÷ dias úteis do mês inteiro, pela regra de cada categoria). Meta diária = meta do mês ÷ dias úteis do mês (pela mesma regra). Devendo = (meta diária × dias já decorridos) − realizado, ou seja, o déficit de cada unidade contra o ritmo que deveria ter mantido até hoje. Dias de atraso = devendo ÷ meta diária.<br>' +
       'Análise diária: cada serviço é contado no dia em que foi executado (campo de data de execução). Use os filtros de data e unidade para ver o volume diário de corte, recorte e baixa em qualquer período.<br>' +
