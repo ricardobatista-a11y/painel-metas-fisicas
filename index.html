@@ -171,6 +171,11 @@
   }
   tr.d0-region-row td:first-child { text-transform: uppercase; letter-spacing: 0.03em; font-size: 12px; }
   #d0-table tbody tr.d0-region-row:hover td { background: var(--accent-soft); }
+  /* Let tier-colored % cells keep their green/orange/red even on a region-band
+     row (e.g. the Total row, styled the same as the region subtotal bands). */
+  tr.d0-region-row td.cell-good { background: rgba(43,212,144,0.18); color: var(--good); }
+  tr.d0-region-row td.cell-warning { background: rgba(247,144,9,0.18); color: var(--warning); }
+  tr.d0-region-row td.cell-critical { background: rgba(255,92,102,0.18); color: var(--critical); }
 
   footer.note { font-size: 11.5px; color: var(--text-muted); padding: 4px 2px 0; line-height: 1.6; }
 
@@ -1493,16 +1498,16 @@
     appendGroup('Outras', unmapped);
 
     document.querySelector('#d0-table tfoot').innerHTML =
-      '<tr><td>Total</td>' +
+      '<tr class="d0-region-row"><td>Total</td>' +
       '<td class="col-group-start">' + fmt1(totMetaProp) + '</td>' +
       '<td>' + fmt(totReal) + '</td>' +
-      '<td>' + fmt1(pctTot) + '%</td>' +
+      cell(fmt1(pctTot) + '%', 'cell-' + tierPct(pctTot)) +
       '<td>' + (totReal - totMetaProp >= 0 ? '+' : '') + fmt1(totReal - totMetaProp) + '</td>' +
       '<td class="col-group-start">' + fmt1(totMetaDia) + '</td>' +
       '<td>' + fmt(totRealHoje) + '</td>' +
       '<td class="col-group-start">' + fmt(totMetaMes) + '</td>' +
       '<td>' + fmt1(totRealProj) + '</td>' +
-      '<td>' + fmt1(pctProjTot) + '%</td>' +
+      cell(fmt1(pctProjTot) + '%', 'cell-' + tierPct(pctProjTot)) +
       '<td>' + (totRealProj - totMetaMes >= 0 ? '+' : '') + fmt1(totRealProj - totMetaMes) + '</td>' +
       '</tr>';
 
