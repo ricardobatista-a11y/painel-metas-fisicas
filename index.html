@@ -171,11 +171,13 @@
   }
   tr.d0-region-row td:first-child { text-transform: uppercase; letter-spacing: 0.03em; font-size: 12px; }
   #d0-table tbody tr.d0-region-row:hover td { background: var(--accent-soft); }
-  /* Let tier-colored % cells keep their green/orange/red even on a region-band
-     row (e.g. the Total row, styled the same as the region subtotal bands). */
-  tr.d0-region-row td.cell-good { background: rgba(43,212,144,0.18); color: var(--good); }
-  tr.d0-region-row td.cell-warning { background: rgba(247,144,9,0.18); color: var(--warning); }
-  tr.d0-region-row td.cell-critical { background: rgba(255,92,102,0.18); color: var(--critical); }
+  /* Tier-colored % cells on a region-band row (region subtotals and the Total
+     row) use the same good/warning/critical logic as a unit row, but in a
+     stronger, more saturated tone so a band's % reads as a summary, visually
+     distinct from the paler per-unit cells above/below it. */
+  tr.d0-region-row td.cell-good { background: rgba(43,212,144,0.55); color: #fff; }
+  tr.d0-region-row td.cell-warning { background: rgba(247,144,9,0.55); color: #fff; }
+  tr.d0-region-row td.cell-critical { background: rgba(255,92,102,0.55); color: #fff; }
 
   footer.note { font-size: 11.5px; color: var(--text-muted); padding: 4px 2px 0; line-height: 1.6; }
 
@@ -1445,7 +1447,9 @@
     }
 
     // Subtotal row for a region: same columns as a unit row, but summed across
-    // its units and NOT tier-colored (kept as one flat band) so it reads as a
+    // its units. The % cells ARE tier-colored, same good/warning/critical
+    // logic as a unit row, but rendered in a stronger tone (see the
+    // "tr.d0-region-row td.cell-*" CSS) so a region band still reads as a
     // group header rather than another data point.
     function regionRowHtml(label, list) {
       var mp = list.reduce(function (s, r) { return s + r.meta_prop; }, 0);
@@ -1459,13 +1463,13 @@
       return '<td>' + label + '</td>' +
         '<td class="col-group-start">' + fmt1(mp) + '</td>' +
         '<td>' + fmt(re) + '</td>' +
-        '<td>' + fmt1(pct) + '%</td>' +
+        cell(fmt1(pct) + '%', 'cell-' + tierPct(pct)) +
         '<td>' + (re - mp >= 0 ? '+' : '') + fmt1(re - mp) + '</td>' +
         '<td class="col-group-start">' + fmt1(md) + '</td>' +
         '<td>' + fmt(rh) + '</td>' +
         '<td class="col-group-start">' + fmt(mm) + '</td>' +
         '<td>' + fmt1(rp) + '</td>' +
-        '<td>' + fmt1(pctProj) + '%</td>' +
+        cell(fmt1(pctProj) + '%', 'cell-' + tierPct(pctProj)) +
         '<td>' + (rp - mm >= 0 ? '+' : '') + fmt1(rp - mm) + '</td>';
     }
 
