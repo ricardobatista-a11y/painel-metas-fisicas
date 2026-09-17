@@ -666,10 +666,40 @@
   // only) view above — same math primitives (resolveUnitJS, categorizeTipo,
   // parseDateFlexible, parseMetaRows), different time window.
   // ==================================================================
+  // Parses the "dd/MM/yyyy HH:mm:ss" string written by the Apps Script
+  // trigger (onEditInstalado -> registrarAtualizacaoDoDia) into STATUS_TEMPO_REAL!A2.
+  // Stored as an explicit formatted string (not a raw Date cell) specifically so the
+  // gviz CSV export returns it unambiguously regardless of spreadsheet locale.
+  function parseStatusTimestamp(str) {
+    if (!str) return null;
+    var m = String(str).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+    if (!m) return null;
+    var d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4]), Number(m[5]), Number(m[6]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Real "last data update" timestamp for the D+0 view: the moment
+  // EXECUTADOS_DO_DIA actually received new information, stamped server-side by
+  // an Apps Script onEdit trigger — NOT the time this browser fetched/cached the
+  // page. Best-effort: if the tab doesn't exist yet (trigger never fired) or the
+  // fetch fails, this stays null and the UI shows an honest "unavailable" message
+  // instead of fabricating a time from the client's own clock.
+  async function fetchRealUpdateTimestamp() {
+    try {
+      var rows = await fetchSheetRows('STATUS_TEMPO_REAL');
+      if (rows.length >= 2 && rows[1] && rows[1][0]) return parseStatusTimestamp(rows[1][0]);
+      return null;
+    } catch (err) {
+      console.warn('Não foi possível ler STATUS_TEMPO_REAL: ' + err.message);
+      return null;
+    }
+  }
+
   async function computeD0Data() {
     var execRows = await fetchSheetRows('EXECUTADOS');
     var doDiaRows = await fetchSheetRows('EXECUTADOS_DO_DIA');
     var metaRows = await fetchSheetRows('BASES DE META');
+    var realUpdateAt = await fetchRealUpdateTimestamp();
     var meta = parseMetaRows(metaRows);
     if (!Object.keys(meta).length) throw new Error('Não foi possível interpretar as metas da aba BASES DE META.');
 
@@ -794,7 +824,7 @@
     });
     dataset['TOTAL'] = { rows: totalRows };
 
-    return { hoje: todayIso, days: DAYS, dataset: dataset };
+    return { hoje: todayIso, days: DAYS, dataset: dataset, realUpdateAt: realUpdateAt };
   }
 
   // Cache the last successfully computed DATA in the browser (per-visitor, not shared) so a
@@ -936,18 +966,35 @@
 
   // ---- topbar meta: mostra "Dados até" (D-1) ou "Hoje + hora da última atualização" (D+0) ----
   var currentView = 'd1';
+  // d0LoadedAt holds the REAL last-update timestamp read from STATUS_TEMPO_REAL
+  // (stamped by the Apps Script trigger when EXECUTADOS_DO_DIA actually receives
+  // new data) — not the time this browser happened to fetch the page. It stays
+  // null while the D+0 tab hasn't finished loading yet, and can also legitimately
+  // stay null after loading if that tab/trigger hasn't produced a value yet;
+  // d0Loaded (declared below) distinguishes those two cases.
   var d0LoadedAt = null;
   function renderTopbarMeta() {
     var el = document.getElementById('topbar-meta');
     if (currentView === 'd0') {
       el.style.color = '';
-      if (!d0LoadedAt) {
+      var p2 = function (n) { return String(n).padStart(2, '0'); };
+      if (!d0Loaded) {
         el.textContent = 'Buscando dados de hoje...';
       } else {
-        var p2 = function (n) { return String(n).padStart(2, '0'); };
-        var dateStr = p2(d0LoadedAt.getDate()) + '/' + p2(d0LoadedAt.getMonth() + 1) + '/' + d0LoadedAt.getFullYear();
-        var timeStr = p2(d0LoadedAt.getHours()) + ':' + p2(d0LoadedAt.getMinutes());
-        el.textContent = 'Hoje, ' + dateStr + ' · atualizado às ' + timeStr;
+        var now = new Date();
+        var dateStr = p2(now.getDate()) + '/' + p2(now.getMonth() + 1) + '/' + now.getFullYear();
+        if (d0LoadedAt) {
+          var sameDay = d0LoadedAt.getDate() === now.getDate() && d0LoadedAt.getMonth() === now.getMonth() && d0LoadedAt.getFullYear() === now.getFullYear();
+          var timeStr = p2(d0LoadedAt.getHours()) + ':' + p2(d0LoadedAt.getMinutes());
+          if (sameDay) {
+            el.textContent = 'Hoje, ' + dateStr + ' · atualizado às ' + timeStr;
+          } else {
+            var updDateStr = p2(d0LoadedAt.getDate()) + '/' + p2(d0LoadedAt.getMonth() + 1);
+            el.textContent = 'Hoje, ' + dateStr + ' · atualizado em ' + updDateStr + ' às ' + timeStr;
+          }
+        } else {
+          el.textContent = 'Hoje, ' + dateStr + ' · horário da última atualização indisponível no momento';
+        }
       }
       return;
     }
@@ -1327,7 +1374,7 @@
     try {
       D0_DATA = await computeD0Data();
       d0Loaded = true;
-      d0LoadedAt = new Date();
+      d0LoadedAt = D0_DATA.realUpdateAt;
       renderTopbarMeta();
       renderD0();
     } catch (err) {
