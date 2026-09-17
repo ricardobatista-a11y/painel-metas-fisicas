@@ -199,8 +199,8 @@
 
   <div class="wrap" style="padding-bottom:0;">
     <div class="tabs" id="view-switch">
-      <button type="button" class="tab-btn active" data-view="d1"><span>D-1 (consolidado)<span class="tab-sub">histórico fechado</span></span></button>
-      <button type="button" class="tab-btn" data-view="d0"><span>Tempo real (hoje)<span class="tab-sub">em andamento</span></span></button>
+      <button type="button" class="tab-btn active" data-view="d1"><span>Consolidado mês<span class="tab-sub">histórico fechado</span></span></button>
+      <button type="button" class="tab-btn" data-view="d0"><span>D+0 Tempo real<span class="tab-sub">em andamento</span></span></button>
     </div>
   </div>
 
@@ -933,14 +933,36 @@
   }
 
   function fmtDate2(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
-  if (usedStaleCache) {
-    document.getElementById('topbar-meta').textContent =
-      'Dados até ' + fmtDate2(DATA.as_of) + ' (última versão salva neste navegador — a planilha não respondeu agora; recarregue em alguns instantes)';
-    document.getElementById('topbar-meta').style.color = 'var(--warning)';
-    console.warn('Usando cache local de ' + fmtTs(staleCacheTs) + ' porque a busca ao vivo falhou.');
-  } else {
-    document.getElementById('topbar-meta').textContent = 'Dados até ' + fmtDate2(DATA.as_of);
+
+  // ---- topbar meta: mostra "Dados até" (D-1) ou "Hoje + hora da última atualização" (D+0) ----
+  var currentView = 'd1';
+  var d0LoadedAt = null;
+  function renderTopbarMeta() {
+    var el = document.getElementById('topbar-meta');
+    if (currentView === 'd0') {
+      el.style.color = '';
+      if (!d0LoadedAt) {
+        el.textContent = 'Buscando dados de hoje...';
+      } else {
+        var p2 = function (n) { return String(n).padStart(2, '0'); };
+        var dateStr = p2(d0LoadedAt.getDate()) + '/' + p2(d0LoadedAt.getMonth() + 1) + '/' + d0LoadedAt.getFullYear();
+        var timeStr = p2(d0LoadedAt.getHours()) + ':' + p2(d0LoadedAt.getMinutes());
+        el.textContent = 'Hoje, ' + dateStr + ' · atualizado às ' + timeStr;
+      }
+      return;
+    }
+    if (usedStaleCache) {
+      el.textContent = 'Dados até ' + fmtDate2(DATA.as_of) + ' (última versão salva neste navegador — a planilha não respondeu agora; recarregue em alguns instantes)';
+      el.style.color = 'var(--warning)';
+    } else {
+      el.textContent = 'Dados até ' + fmtDate2(DATA.as_of);
+      el.style.color = '';
+    }
   }
+  if (usedStaleCache) {
+    console.warn('Usando cache local de ' + fmtTs(staleCacheTs) + ' porque a busca ao vivo falhou.');
+  }
+  renderTopbarMeta();
 
   // ---- tabs ----
   var tabsEl = document.getElementById('tabs');
@@ -1305,11 +1327,14 @@
     try {
       D0_DATA = await computeD0Data();
       d0Loaded = true;
+      d0LoadedAt = new Date();
+      renderTopbarMeta();
       renderD0();
     } catch (err) {
       console.error(err);
       document.getElementById('d0-subtitle').textContent =
         'Não foi possível carregar os dados de tempo real agora (' + err.message + '). Tente recarregar em alguns instantes.';
+      document.getElementById('topbar-meta').textContent = 'Erro ao carregar dados de hoje';
     }
   }
 
@@ -1385,11 +1410,13 @@
   Array.prototype.forEach.call(viewSwitchEl.querySelectorAll('.tab-btn'), function (btn) {
     btn.addEventListener('click', function () {
       var view = btn.dataset.view;
+      currentView = view;
       Array.prototype.forEach.call(viewSwitchEl.querySelectorAll('.tab-btn'), function (b) {
         b.classList.toggle('active', b === btn);
       });
       document.getElementById('view-d1').style.display = view === 'd1' ? '' : 'none';
       document.getElementById('view-d0').style.display = view === 'd0' ? '' : 'none';
+      renderTopbarMeta();
       if (view === 'd0' && !d0Loaded) loadD0();
     });
   });
