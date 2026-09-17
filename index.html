@@ -154,6 +154,11 @@
   th:first-child, td:first-child { text-align: left; }
   th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 10.5px; }
   tfoot td { font-weight: 700; border-top: 1px solid var(--border-2); border-bottom: none; }
+  .col-group-start { border-left: 1px solid var(--border-2); }
+  td.cell-good { color: var(--good); font-weight: 700; }
+  td.cell-warning { color: var(--warning); font-weight: 700; }
+  td.cell-critical { color: var(--critical); font-weight: 700; }
+  #d0-table tbody tr:hover { background: var(--surface-2); }
 
   footer.note { font-size: 11.5px; color: var(--text-muted); padding: 4px 2px 0; line-height: 1.6; }
 
@@ -191,7 +196,14 @@
     <div class="topbar-meta" id="topbar-meta"></div>
   </div>
 
-  <div class="wrap">
+  <div class="wrap" style="padding-bottom:0;">
+    <div class="tabs" id="view-switch">
+      <button type="button" class="tab-btn active" data-view="d1"><span>D-1 (consolidado)<span class="tab-sub">histórico fechado</span></span></button>
+      <button type="button" class="tab-btn" data-view="d0"><span>Tempo real (hoje)<span class="tab-sub">em andamento</span></span></button>
+    </div>
+  </div>
+
+  <div class="wrap" id="view-d1">
 
     <header class="page-head">
       <span class="eyebrow">Consulta de serviços SIR357074</span>
@@ -285,6 +297,55 @@
     </section>
 
     <footer class="note" id="footnote"></footer>
+
+  </div>
+
+  <div class="wrap" id="view-d0" style="display:none;">
+
+    <header class="page-head">
+      <span class="eyebrow">Consulta de serviços SIR357074</span>
+      <h1>Tempo real — progresso de hoje</h1>
+      <p class="subtitle" id="d0-subtitle"></p>
+    </header>
+
+    <div class="tabs" id="d0-tabs"></div>
+
+    <div class="stat-row" id="d0-stat-row"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Unidades — hoje</h2>
+        <span class="panel-note" id="d0-note"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="d0-table" class="mono">
+          <thead>
+            <tr>
+              <th rowspan="2" style="text-align:left;">Unidade</th>
+              <th colspan="4" class="col-group-start">Até hoje (mês)</th>
+              <th colspan="2" class="col-group-start">Hoje</th>
+              <th colspan="4" class="col-group-start">Projeção (fim do mês)</th>
+            </tr>
+            <tr>
+              <th class="col-group-start" style="text-align:right;">Meta prop.</th>
+              <th>Real</th>
+              <th>%</th>
+              <th>Δ</th>
+              <th class="col-group-start">Meta dia</th>
+              <th>Real</th>
+              <th class="col-group-start">Meta mês</th>
+              <th>Real proj.</th>
+              <th>%</th>
+              <th>Δ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <footer class="note" id="d0-footnote"></footer>
 
   </div>
 </div>
@@ -573,6 +634,147 @@
     });
 
     return { as_of: isoDate(AS_OF), days: DAYS, dataset: dataset, dates: dates, daily_all: dailyAllOut, daily_by_unit: dailyByUnitOut };
+  }
+
+  // ==================================================================
+  // REAL-TIME (D0) ENGINE — combines the consolidated EXECUTADOS tab with
+  // today's live EXECUTADOS_DO_DIA tab (deduplicated by Nota, since the
+  // 20h automation merges DO_DIA into EXECUTADOS without clearing DO_DIA,
+  // so the same row can briefly exist in both) to show today's progress:
+  // month-to-date so far, today alone, and a run-rate projection to the
+  // end of the month. Separate from the D-1 (consolidated, complete days
+  // only) view above — same math primitives (resolveUnitJS, categorizeTipo,
+  // parseDateFlexible, parseMetaRows), different time window.
+  // ==================================================================
+  async function computeD0Data() {
+    var execRows = await fetchSheetRows('EXECUTADOS');
+    var doDiaRows = await fetchSheetRows('EXECUTADOS_DO_DIA');
+    var metaRows = await fetchSheetRows('BASES DE META');
+    var meta = parseMetaRows(metaRows);
+    if (!Object.keys(meta).length) throw new Error('Não foi possível interpretar as metas da aba BASES DE META.');
+
+    function colIndex(header, name) {
+      for (var i = 0; i < header.length; i++) if (String(header[i]).trim() === name) return i;
+      return -1;
+    }
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var todayIso = isoDate(today);
+    var monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // Merge both sources into one row list, keyed by Nota to avoid double-counting
+    // a row that exists in both tabs during the window between the 20h merge and
+    // EXECUTADOS_DO_DIA being refreshed for the new day.
+    var seenNota = {};
+    var combined = []; // { unit, cat, date }
+    function ingestSheet(rows) {
+      if (!rows.length) return;
+      var header = rows[0];
+      var iTipo = colIndex(header, 'tipo_servico'), iBairro = colIndex(header, 'Bairro'),
+          iLoc = colIndex(header, 'Localidade'), iData = colIndex(header, 'dta_exec_srv'),
+          iNota = colIndex(header, 'Nota');
+      if (iTipo < 0 || iBairro < 0 || iLoc < 0 || iData < 0) return;
+      for (var r = 1; r < rows.length; r++) {
+        var row = rows[r];
+        if (!row || !row.length) continue;
+        var cat = categorizeTipo(row[iTipo]);
+        if (!cat) continue;
+        var unit = resolveUnitJS(row[iLoc], row[iBairro]);
+        if (!unit || !meta.hasOwnProperty(unit)) continue;
+        var notaVal = iNota >= 0 ? row[iNota] : '';
+        var notaKey = (notaVal !== undefined && notaVal !== null && String(notaVal).trim() !== '') ? String(notaVal).trim() : null;
+        if (notaKey) {
+          if (seenNota[notaKey]) continue;
+          seenNota[notaKey] = true;
+        }
+        var d = parseDateFlexible(row[iData]);
+        if (!d) continue;
+        combined.push({ unit: unit, cat: cat, date: d });
+      }
+    }
+    ingestSheet(execRows);
+    ingestSheet(doDiaRows);
+
+    // Month-to-date (through today) and today-only tallies, per unit/category.
+    var mesAtual = {}, hoje = {};
+    combined.forEach(function (r) {
+      if (r.date < monthStart || r.date > today) return; // only the current month, never past today
+      if (!mesAtual[r.unit]) mesAtual[r.unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+      mesAtual[r.unit][r.cat] += 1;
+      if (r.date.getTime() === today.getTime()) {
+        if (!hoje[r.unit]) hoje[r.unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+        hoje[r.unit][r.cat] += 1;
+      }
+    });
+
+    function dayCounts(weekdays) {
+      var daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      var total = 0, elapsed = 0;
+      for (var dd = 1; dd <= daysInMonth; dd++) {
+        var d = new Date(today.getFullYear(), today.getMonth(), dd);
+        if (weekdays.indexOf(jsWeekdayMon0(d)) === -1) continue;
+        total++;
+        if (d <= today) elapsed++;
+      }
+      return [total, elapsed];
+    }
+    var CAT_WEEKDAYS = { CORTE: [0, 1, 2, 3], RECORTE: [0, 1, 2, 3, 4], BAIXA: [0, 1, 2, 3, 4] };
+    var CAT_RULE_LABEL = { CORTE: 'seg-qui', RECORTE: 'seg-sex', BAIXA: 'seg-sex' };
+    var DAYS = {};
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
+      var tc = dayCounts(CAT_WEEKDAYS[cat]);
+      DAYS[cat] = { total: tc[0], elapsed: tc[1], rule: CAT_RULE_LABEL[cat] };
+    });
+
+    function buildCategory(cat) {
+      var totalDays = DAYS[cat].total, elapsedDays = DAYS[cat].elapsed;
+      var units = Object.keys(meta).sort();
+      var rows = units.map(function (u) {
+        var metaMes = meta[u][cat] || 0;
+        var realMes = (mesAtual[u] && mesAtual[u][cat]) || 0;
+        var realHoje = (hoje[u] && hoje[u][cat]) || 0;
+        var metaProp = totalDays ? metaMes * (elapsedDays / totalDays) : 0;
+        var pct = metaProp > 0 ? (realMes / metaProp * 100) : (realMes === 0 ? 100.0 : 999.0);
+        var delta = realMes - metaProp;
+        var metaDia = totalDays ? metaMes / totalDays : 0;
+        var realProj = elapsedDays > 0 ? (realMes / elapsedDays * totalDays) : realMes;
+        var pctProj = metaMes > 0 ? (realProj / metaMes * 100) : (realProj === 0 ? 100.0 : 999.0);
+        var deltaProj = realProj - metaMes;
+        return {
+          unidade: displayName(u), meta_mes: metaMes, meta_prop: round1(metaProp), realizado_mes: realMes,
+          pct: round1(pct), delta: round1(delta), meta_dia: round1(metaDia), realizado_hoje: realHoje,
+          real_proj: round1(realProj), pct_proj: round1(pctProj), delta_proj: round1(deltaProj)
+        };
+      });
+      return { rows: rows };
+    }
+
+    var dataset = {};
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) { dataset[cat] = buildCategory(cat); });
+
+    var FIELDS_SUM = ['meta_mes', 'meta_prop', 'realizado_mes', 'meta_dia', 'realizado_hoje', 'real_proj'];
+    var byUnit = {};
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
+      dataset[cat].rows.forEach(function (r) {
+        var u = r.unidade;
+        if (!byUnit[u]) { byUnit[u] = {}; FIELDS_SUM.forEach(function (k) { byUnit[u][k] = 0; }); }
+        FIELDS_SUM.forEach(function (k) { byUnit[u][k] += r[k]; });
+      });
+    });
+    var totalRows = Object.keys(byUnit).sort().map(function (u) {
+      var acc = byUnit[u];
+      var pct = acc.meta_prop > 0 ? (acc.realizado_mes / acc.meta_prop * 100) : (acc.realizado_mes === 0 ? 100.0 : 999.0);
+      var pctProj = acc.meta_mes > 0 ? (acc.real_proj / acc.meta_mes * 100) : (acc.real_proj === 0 ? 100.0 : 999.0);
+      var row = { unidade: u };
+      FIELDS_SUM.forEach(function (k) { row[k] = (k === 'meta_prop' || k === 'meta_dia' || k === 'real_proj') ? round1(acc[k]) : acc[k]; });
+      row.pct = round1(pct); row.delta = round1(acc.realizado_mes - acc.meta_prop);
+      row.pct_proj = round1(pctProj); row.delta_proj = round1(acc.real_proj - acc.meta_mes);
+      return row;
+    });
+    dataset['TOTAL'] = { rows: totalRows };
+
+    return { hoje: todayIso, days: DAYS, dataset: dataset };
   }
 
   // Cache the last successfully computed DATA in the browser (per-visitor, not shared) so a
@@ -992,6 +1194,130 @@
       'Análise diária: cada serviço é contado no dia em que foi executado (campo de data de execução). Use os filtros de data e unidade para ver o volume diário de corte, recorte e baixa em qualquer período.<br>' +
       'Classificação por unidade: cada serviço é atribuído à UTD pela localidade (e, no caso de Feira de Santana, pelo bairro) do endereço executado, seguindo a relação oficial localidade/bairro → UTD — não mais pelo centro de serviço informado no sistema.';
   }
+
+  // ==================================================================
+  // REAL-TIME (D0) VIEW — separate tab/category state and render pipeline.
+  // Data is fetched lazily (only when "Tempo real" is opened for the first
+  // time) so a normal visit that never looks at it costs nothing extra.
+  // ==================================================================
+  var D0_DATA = null;
+  var d0Cat = 'TOTAL';
+  var d0Loaded = false;
+
+  function tierPct(pct) { return pct >= 100 ? 'good' : (pct >= 60 ? 'warning' : 'critical'); }
+
+  var d0TabsEl = document.getElementById('d0-tabs');
+  CAT_ORDER.forEach(function (cat) {
+    var m = CAT_META[cat];
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn' + (cat === d0Cat ? ' active' : '');
+    btn.style.setProperty('--tab-color', m.color);
+    btn.dataset.cat = cat;
+    btn.innerHTML = '<span class="tab-dot"></span><span>' + m.label + '<span class="tab-sub">' + m.sub + '</span></span>';
+    btn.addEventListener('click', function () {
+      d0Cat = cat;
+      Array.prototype.forEach.call(d0TabsEl.querySelectorAll('.tab-btn'), function (b) {
+        b.classList.toggle('active', b.dataset.cat === cat);
+      });
+      renderD0();
+    });
+    d0TabsEl.appendChild(btn);
+  });
+
+  async function loadD0() {
+    document.getElementById('d0-subtitle').textContent = 'Buscando dados de hoje na planilha...';
+    try {
+      D0_DATA = await computeD0Data();
+      d0Loaded = true;
+      renderD0();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('d0-subtitle').textContent =
+        'Não foi possível carregar os dados de tempo real agora (' + err.message + '). Tente recarregar em alguns instantes.';
+    }
+  }
+
+  function renderD0() {
+    if (!D0_DATA) return;
+    var cat = d0Cat;
+    var meta = CAT_META[cat];
+    var rows = D0_DATA.dataset[cat].rows;
+
+    document.getElementById('d0-subtitle').textContent =
+      'Progresso do dia ' + fmtDate2(D0_DATA.hoje) + ' comparado à meta proporcional do mês até agora, com projeção de fechamento pelo ritmo atual. Categoria: ' + meta.label + '.';
+
+    var totMetaProp = rows.reduce(function (s, r) { return s + r.meta_prop; }, 0);
+    var totReal = rows.reduce(function (s, r) { return s + r.realizado_mes; }, 0);
+    var totRealHoje = rows.reduce(function (s, r) { return s + r.realizado_hoje; }, 0);
+    var totRealProj = rows.reduce(function (s, r) { return s + r.real_proj; }, 0);
+    var totMetaMes = rows.reduce(function (s, r) { return s + r.meta_mes; }, 0);
+    var totMetaDia = rows.reduce(function (s, r) { return s + r.meta_dia; }, 0);
+    var pctTot = totMetaProp > 0 ? (totReal / totMetaProp * 100) : 0;
+    var pctProjTot = totMetaMes > 0 ? (totRealProj / totMetaMes * 100) : 0;
+
+    renderStatRow(document.getElementById('d0-stat-row'), [
+      { label: 'Realizado hoje', value: fmt(totRealHoje), sub: meta.unitLabel + ' concluídos hoje', accent: true, color: meta.color },
+      { label: 'Realizado no mês (até agora)', value: fmt(totReal), sub: 'vs. meta prop. ' + fmt1(totMetaProp) + ' (' + fmt1(pctTot) + '%)' },
+      { label: 'Projeção de fechamento', value: fmt1(totRealProj), sub: 'se mantiver o ritmo atual até o fim do mês' },
+      { label: 'Projeção vs. meta do mês', value: fmt1(pctProjTot) + '%', sub: 'meta do mês: ' + fmt(totMetaMes) }
+    ]);
+
+    document.getElementById('d0-note').textContent = rows.length + ' unidades · ordenado por % de atingimento (mês até hoje)';
+
+    var sorted = rows.slice().sort(function (a, b) { return a.pct - b.pct; });
+    var tbody = document.querySelector('#d0-table tbody');
+    clearChildren(tbody);
+    sorted.forEach(function (r) {
+      var tr = document.createElement('tr');
+      function cell(val, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</td>'; }
+      tr.innerHTML =
+        '<td>' + r.unidade + '</td>' +
+        '<td class="col-group-start">' + fmt1(r.meta_prop) + '</td>' +
+        '<td>' + fmt(r.realizado_mes) + '</td>' +
+        cell(fmt1(r.pct) + '%', 'cell-' + tierPct(r.pct)) +
+        '<td>' + (r.delta >= 0 ? '+' : '') + fmt1(r.delta) + '</td>' +
+        '<td class="col-group-start">' + fmt1(r.meta_dia) + '</td>' +
+        '<td>' + fmt(r.realizado_hoje) + '</td>' +
+        '<td class="col-group-start">' + fmt(r.meta_mes) + '</td>' +
+        '<td>' + fmt1(r.real_proj) + '</td>' +
+        cell(fmt1(r.pct_proj) + '%', 'cell-' + tierPct(r.pct_proj)) +
+        '<td>' + (r.delta_proj >= 0 ? '+' : '') + fmt1(r.delta_proj) + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    document.querySelector('#d0-table tfoot').innerHTML =
+      '<tr><td>Total</td>' +
+      '<td class="col-group-start">' + fmt1(totMetaProp) + '</td>' +
+      '<td>' + fmt(totReal) + '</td>' +
+      '<td>' + fmt1(pctTot) + '%</td>' +
+      '<td>' + (totReal - totMetaProp >= 0 ? '+' : '') + fmt1(totReal - totMetaProp) + '</td>' +
+      '<td class="col-group-start">' + fmt1(totMetaDia) + '</td>' +
+      '<td>' + fmt(totRealHoje) + '</td>' +
+      '<td class="col-group-start">' + fmt(totMetaMes) + '</td>' +
+      '<td>' + fmt1(totRealProj) + '</td>' +
+      '<td>' + fmt1(pctProjTot) + '%</td>' +
+      '<td>' + (totRealProj - totMetaMes >= 0 ? '+' : '') + fmt1(totRealProj - totMetaMes) + '</td>' +
+      '</tr>';
+
+    document.getElementById('d0-footnote').innerHTML =
+      'Categoria selecionada: <b>' + meta.label + '</b> (' + meta.sub + '). "Até hoje (mês)" = realizado do mês inteiro somando a base consolidada (EXECUTADOS) com o tempo real de hoje (EXECUTADOS_DO_DIA), sem contar duas vezes o mesmo serviço (deduplicado pelo número da Nota). "Hoje" = só os serviços de hoje. "Projeção" = realizado do mês até agora ÷ dias úteis já decorridos × dias úteis totais do mês (pela regra de cada categoria) — ou seja, para onde a unidade deve fechar o mês se mantiver o ritmo atual.<br>' +
+      'Dias úteis do mês corrente considerados até agora: Corte ' + D0_DATA.days.CORTE.elapsed + '/' + D0_DATA.days.CORTE.total + ' (seg-qui); Recorte/Baixa ' + D0_DATA.days.RECORTE.elapsed + '/' + D0_DATA.days.RECORTE.total + ' (seg-sex) — hoje conta como decorrido se for dia útil pela regra da categoria.<br>' +
+      'A base de tempo real (EXECUTADOS_DO_DIA) é incorporada automaticamente à base consolidada (EXECUTADOS) todos os dias por volta das 20h; esta visão, porém, é recalculada ao vivo toda vez que a página é carregada, independente desse horário.';
+  }
+
+  var viewSwitchEl = document.getElementById('view-switch');
+  Array.prototype.forEach.call(viewSwitchEl.querySelectorAll('.tab-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      var view = btn.dataset.view;
+      Array.prototype.forEach.call(viewSwitchEl.querySelectorAll('.tab-btn'), function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      document.getElementById('view-d1').style.display = view === 'd1' ? '' : 'none';
+      document.getElementById('view-d0').style.display = view === 'd0' ? '' : 'none';
+      if (view === 'd0' && !d0Loaded) loadD0();
+    });
+  });
 
   renderDailyChart();
   render();
