@@ -575,16 +575,62 @@
     return { as_of: isoDate(AS_OF), days: DAYS, dataset: dataset, dates: dates, daily_all: dailyAllOut, daily_by_unit: dailyByUnitOut };
   }
 
+  // Cache the last successfully computed DATA in the browser (per-visitor, not shared) so a
+  // transient hiccup while the Sheet is being updated (formula still loading, tab briefly
+  // renamed during a staged swap, etc.) shows last-known-good numbers instead of an error page.
+  var CACHE_KEY = 'painel_metas_fisicas_cache_v1';
+  function loadCache() {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.data) return parsed;
+    } catch (e) { /* ignore: private mode, cleared storage, etc. */ }
+    return null;
+  }
+  function saveCache(data) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data: data, ts: Date.now() })); }
+    catch (e) { /* ignore: quota/private mode — caching is best-effort only */ }
+  }
+  function fmtTs(ts) {
+    var d = new Date(ts);
+    function p(n) { return String(n).padStart(2, '0'); }
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
   document.getElementById('topbar-meta').textContent = 'Carregando dados da planilha...';
   document.getElementById('subtitle').textContent = 'Buscando dados atualizados na planilha do Google Sheets...';
   var DATA;
+  var usedStaleCache = false;
+  var staleCacheTs = null;
+  var cacheBeforeFetch = loadCache();
   try {
-    DATA = await computeLiveData();
+    var fresh = await computeLiveData();
+    // Sanity check: within the same month, total realizado should only grow as rows are added.
+    // A sharp drop almost always means the fetch landed mid-edit (Sheet tab briefly cleared or
+    // half-renamed during an update) rather than a real change — prefer the cache in that case.
+    if (cacheBeforeFetch && cacheBeforeFetch.data && cacheBeforeFetch.data.as_of &&
+        cacheBeforeFetch.data.as_of.slice(0, 7) === fresh.as_of.slice(0, 7)) {
+      var prevReal = cacheBeforeFetch.data.dataset.TOTAL.totals.realizado;
+      var freshReal = fresh.dataset.TOTAL.totals.realizado;
+      if (prevReal > 0 && freshReal < prevReal * 0.7) {
+        throw new Error('Os dados recebidos agora parecem incompletos (total caiu de ' + prevReal + ' para ' + freshReal + ') — a planilha provavelmente está sendo atualizada neste momento.');
+      }
+    }
+    DATA = fresh;
+    saveCache(DATA);
   } catch (err) {
     console.error(err);
-    document.getElementById('topbar-meta').textContent = 'Erro ao carregar dados';
-    document.getElementById('subtitle').textContent = 'Não foi possível carregar os dados da planilha agora (' + err.message + '). Recarregue a página em alguns instantes.';
-    return;
+    var cached = loadCache();
+    if (cached) {
+      DATA = cached.data;
+      usedStaleCache = true;
+      staleCacheTs = cached.ts;
+    } else {
+      document.getElementById('topbar-meta').textContent = 'Erro ao carregar dados';
+      document.getElementById('subtitle').textContent = 'Não foi possível carregar os dados da planilha agora (' + err.message + '). Recarregue a página em alguns instantes.';
+      return;
+    }
   }
 
   var CAT_META = {
@@ -660,8 +706,15 @@
     });
   }
 
-  document.getElementById('topbar-meta').textContent = 'Dados até ' + fmtDate2(DATA.as_of);
   function fmtDate2(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+  if (usedStaleCache) {
+    document.getElementById('topbar-meta').textContent =
+      'Dados até ' + fmtDate2(DATA.as_of) + ' (última versão salva neste navegador — a planilha não respondeu agora; recarregue em alguns instantes)';
+    document.getElementById('topbar-meta').style.color = 'var(--warning)';
+    console.warn('Usando cache local de ' + fmtTs(staleCacheTs) + ' porque a busca ao vivo falhou.');
+  } else {
+    document.getElementById('topbar-meta').textContent = 'Dados até ' + fmtDate2(DATA.as_of);
+  }
 
   // ---- tabs ----
   var tabsEl = document.getElementById('tabs');
