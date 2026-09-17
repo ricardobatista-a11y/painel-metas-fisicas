@@ -156,10 +156,21 @@
   th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 10.5px; }
   tfoot td { font-weight: 700; border-top: 1px solid var(--border-2); border-bottom: none; }
   .col-group-start { border-left: 1px solid var(--border-2); }
-  td.cell-good { color: var(--good); font-weight: 700; }
-  td.cell-warning { color: var(--warning); font-weight: 700; }
-  td.cell-critical { color: var(--critical); font-weight: 700; }
+  td.cell-good { background: rgba(43,212,144,0.18); color: var(--good); font-weight: 700; }
+  td.cell-warning { background: rgba(247,144,9,0.18); color: var(--warning); font-weight: 700; }
+  td.cell-critical { background: rgba(255,92,102,0.18); color: var(--critical); font-weight: 700; }
   #d0-table tbody tr:hover { background: var(--surface-2); }
+
+  /* ---- D+0 table: rows grouped by contrato (região), with a subtotal band per group ---- */
+  tr.d0-region-row td {
+    background: var(--accent-soft);
+    color: var(--text-1);
+    font-weight: 700;
+    border-top: 1px solid var(--border-2);
+    border-bottom: 1px solid var(--border-2);
+  }
+  tr.d0-region-row td:first-child { text-transform: uppercase; letter-spacing: 0.03em; font-size: 12px; }
+  #d0-table tbody tr.d0-region-row:hover td { background: var(--accent-soft); }
 
   footer.note { font-size: 11.5px; color: var(--text-muted); padding: 4px 2px 0; line-height: 1.6; }
 
@@ -1410,16 +1421,12 @@
       { label: 'Projeção vs. meta do mês', value: fmt1(pctProjTot) + '%', sub: 'meta do mês: ' + fmt(totMetaMes) }
     ]);
 
-    document.getElementById('d0-note').textContent = rows.length + ' unidades · ordenado por % de atingimento (mês até hoje)';
+    document.getElementById('d0-note').textContent = rows.length + ' unidades · agrupado por contrato (região), com subtotal de cada um';
 
-    var sorted = rows.slice().sort(function (a, b) { return a.pct - b.pct; });
-    var tbody = document.querySelector('#d0-table tbody');
-    clearChildren(tbody);
-    sorted.forEach(function (r) {
-      var tr = document.createElement('tr');
-      function cell(val, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</td>'; }
-      tr.innerHTML =
-        '<td>' + r.unidade + '</td>' +
+    function cell(val, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</td>'; }
+
+    function unitRowHtml(r) {
+      return '<td>' + r.unidade + '</td>' +
         '<td class="col-group-start">' + fmt1(r.meta_prop) + '</td>' +
         '<td>' + fmt(r.realizado_mes) + '</td>' +
         cell(fmt1(r.pct) + '%', 'cell-' + tierPct(r.pct)) +
@@ -1430,8 +1437,60 @@
         '<td>' + fmt1(r.real_proj) + '</td>' +
         cell(fmt1(r.pct_proj) + '%', 'cell-' + tierPct(r.pct_proj)) +
         '<td>' + (r.delta_proj >= 0 ? '+' : '') + fmt1(r.delta_proj) + '</td>';
-      tbody.appendChild(tr);
+    }
+
+    // Subtotal row for a region: same columns as a unit row, but summed across
+    // its units and NOT tier-colored (kept as one flat band) so it reads as a
+    // group header rather than another data point.
+    function regionRowHtml(label, list) {
+      var mp = list.reduce(function (s, r) { return s + r.meta_prop; }, 0);
+      var re = list.reduce(function (s, r) { return s + r.realizado_mes; }, 0);
+      var md = list.reduce(function (s, r) { return s + r.meta_dia; }, 0);
+      var rh = list.reduce(function (s, r) { return s + r.realizado_hoje; }, 0);
+      var mm = list.reduce(function (s, r) { return s + r.meta_mes; }, 0);
+      var rp = list.reduce(function (s, r) { return s + r.real_proj; }, 0);
+      var pct = mp > 0 ? (re / mp * 100) : (re === 0 ? 100 : 999);
+      var pctProj = mm > 0 ? (rp / mm * 100) : (rp === 0 ? 100 : 999);
+      return '<td>' + label + '</td>' +
+        '<td class="col-group-start">' + fmt1(mp) + '</td>' +
+        '<td>' + fmt(re) + '</td>' +
+        '<td>' + fmt1(pct) + '%</td>' +
+        '<td>' + (re - mp >= 0 ? '+' : '') + fmt1(re - mp) + '</td>' +
+        '<td class="col-group-start">' + fmt1(md) + '</td>' +
+        '<td>' + fmt(rh) + '</td>' +
+        '<td class="col-group-start">' + fmt(mm) + '</td>' +
+        '<td>' + fmt1(rp) + '</td>' +
+        '<td>' + fmt1(pctProj) + '%</td>' +
+        '<td>' + (rp - mm >= 0 ? '+' : '') + fmt1(rp - mm) + '</td>';
+    }
+
+    var byRegion = {};
+    REGION_ORDER.forEach(function (rg) { byRegion[rg] = []; });
+    var unmapped = [];
+    rows.forEach(function (r) {
+      var rg = REGION_MAP[r.unidade];
+      if (rg && byRegion[rg]) byRegion[rg].push(r); else unmapped.push(r);
     });
+
+    var tbody = document.querySelector('#d0-table tbody');
+    clearChildren(tbody);
+
+    function appendGroup(label, list) {
+      if (!list.length) return;
+      var sortedList = list.slice().sort(function (a, b) { return a.unidade.localeCompare(b.unidade, 'pt-BR'); });
+      var trh = document.createElement('tr');
+      trh.className = 'd0-region-row';
+      trh.innerHTML = regionRowHtml(label, sortedList);
+      tbody.appendChild(trh);
+      sortedList.forEach(function (r) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = unitRowHtml(r);
+        tbody.appendChild(tr);
+      });
+    }
+
+    REGION_ORDER.forEach(function (rg) { appendGroup(REGION_LABEL[rg], byRegion[rg]); });
+    appendGroup('Outras', unmapped);
 
     document.querySelector('#d0-table tfoot').innerHTML =
       '<tr><td>Total</td>' +
