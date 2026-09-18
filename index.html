@@ -765,11 +765,20 @@
     ingestSheet(doDiaRows);
 
     // Month-to-date (through today) and today-only tallies, per unit/category.
-    var mesAtual = {}, hoje = {};
+    // mesAtualSab isolates the slice of mesAtual that landed on a Saturday — a day
+    // with real production but NO meta at all (see buildCategory below: the D+0
+    // projection needs to extrapolate that slice separately, at its own pace,
+    // because it can't be scaled by the "dias úteis decorridos/totais" ratio the
+    // way meta-bearing days can).
+    var mesAtual = {}, mesAtualSab = {}, hoje = {};
     combined.forEach(function (r) {
       if (r.date < monthStart || r.date > today) return; // only the current month, never past today
       if (!mesAtual[r.unit]) mesAtual[r.unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
       mesAtual[r.unit][r.cat] += 1;
+      if (jsWeekdayMon0(r.date) === 5) { // Saturday
+        if (!mesAtualSab[r.unit]) mesAtualSab[r.unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+        mesAtualSab[r.unit][r.cat] += 1;
+      }
       if (r.date.getTime() === today.getTime()) {
         if (!hoje[r.unit]) hoje[r.unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
         hoje[r.unit][r.cat] += 1;
@@ -794,6 +803,20 @@
       var tc = dayCounts(CAT_WEEKDAYS[cat]);
       DAYS[cat] = { total: tc[0], elapsed: tc[1], rule: CAT_RULE_LABEL[cat] };
     });
+    // Sábado nunca tem meta, mas tem produção real (domingo, esse sim, nunca produz).
+    // Guardado à parte para a projeção poder extrapolar esse ritmo isoladamente.
+    var sabTC = dayCounts([5]);
+    var SAB_TOTAL = sabTC[0], SAB_ELAPSED = sabTC[1];
+    DAYS.SABADO = { total: SAB_TOTAL, elapsed: SAB_ELAPSED, rule: 'sábado (sem meta)' };
+
+    // "Meta Dia" (coluna HOJE) é o alvo de HOJE especificamente, não uma média —
+    // então tem que respeitar a regra de dias da própria categoria. Corte (seg-qui)
+    // fica em 0 numa sexta, sábado ou domingo; Recorte/Baixa (seg-sex) mantêm meta
+    // na sexta e só zeram sábado/domingo.
+    var todayIsMetaDay = {};
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
+      todayIsMetaDay[cat] = CAT_WEEKDAYS[cat].indexOf(jsWeekdayMon0(today)) !== -1;
+    });
 
     function buildCategory(cat) {
       var totalDays = DAYS[cat].total, elapsedDays = DAYS[cat].elapsed;
@@ -801,12 +824,26 @@
       var rows = units.map(function (u) {
         var metaMes = meta[u][cat] || 0;
         var realMes = (mesAtual[u] && mesAtual[u][cat]) || 0;
+        var realMesSab = (mesAtualSab[u] && mesAtualSab[u][cat]) || 0;
+        var realMesUtil = realMes - realMesSab; // parte do realizado que caiu em dia com meta
         var realHoje = (hoje[u] && hoje[u][cat]) || 0;
         var metaProp = totalDays ? metaMes * (elapsedDays / totalDays) : 0;
         var pct = metaProp > 0 ? (realMes / metaProp * 100) : (realMes === 0 ? 100.0 : 999.0);
         var delta = realMes - metaProp;
-        var metaDia = totalDays ? metaMes / totalDays : 0;
-        var realProj = elapsedDays > 0 ? (realMes / elapsedDays * totalDays) : realMes;
+        var metaDia = (totalDays && todayIsMetaDay[cat]) ? metaMes / totalDays : 0;
+        // Projeção de fechamento: extrapola o ritmo de dia útil (pela regra da categoria)
+        // e o ritmo de sábado SEPARADAMENTE, cada um pelos seus próprios dias totais/decorridos,
+        // e soma os dois. Um sábado trabalhado nunca vira dia de meta, mas também não pode
+        // desaparecer da projeção — se ele só entrasse pela régua de dias úteis (como antes),
+        // a % projetada sempre voltava a ser idêntica à % atual, o que escondia justamente
+        // a produção extra de fim de semana. Enquanto nenhum sábado do mês ainda passou
+        // (SAB_ELAPSED = 0), o ritmo de sábado fica em 0 — conservador, e se autocorrige
+        // assim que o primeiro sábado do mês tiver dado real.
+        var ritmoUtil = elapsedDays > 0 ? (realMesUtil / elapsedDays) : 0;
+        var ritmoSab = SAB_ELAPSED > 0 ? (realMesSab / SAB_ELAPSED) : 0;
+        var realProj = (elapsedDays > 0 || SAB_ELAPSED > 0)
+          ? (ritmoUtil * totalDays + ritmoSab * SAB_TOTAL)
+          : realMes;
         var pctProj = metaMes > 0 ? (realProj / metaMes * 100) : (realProj === 0 ? 100.0 : 999.0);
         var deltaProj = realProj - metaMes;
         return {
@@ -1410,7 +1447,7 @@
     var rows = D0_DATA.dataset[cat].rows;
 
     document.getElementById('d0-subtitle').textContent =
-      'Progresso do dia ' + fmtDate2(D0_DATA.hoje) + ' comparado à meta proporcional do mês até agora, com projeção de fechamento pelo ritmo atual. Categoria: ' + meta.label + '.';
+      'Progresso do dia ' + fmtDate2(D0_DATA.hoje) + ' comparado à meta proporcional do mês até agora, com projeção de fechamento pelo ritmo atual (dia útil + sábado). Categoria: ' + meta.label + '.';
 
     var totMetaProp = rows.reduce(function (s, r) { return s + r.meta_prop; }, 0);
     var totReal = rows.reduce(function (s, r) { return s + r.realizado_mes; }, 0);
@@ -1516,8 +1553,9 @@
       '</tr>';
 
     document.getElementById('d0-footnote').innerHTML =
-      'Categoria selecionada: <b>' + meta.label + '</b> (' + meta.sub + '). "Até hoje (mês)" = realizado do mês inteiro somando a base consolidada (EXECUTADOS) com o tempo real de hoje (EXECUTADOS_DO_DIA), sem contar duas vezes o mesmo serviço (deduplicado pelo número da Nota). "Hoje" = só os serviços de hoje. "Projeção" = realizado do mês até agora ÷ dias úteis já decorridos × dias úteis totais do mês (pela regra de cada categoria) — ou seja, para onde a unidade deve fechar o mês se mantiver o ritmo atual.<br>' +
-      'Dias úteis do mês corrente considerados até agora: Corte ' + D0_DATA.days.CORTE.elapsed + '/' + D0_DATA.days.CORTE.total + ' (seg-qui); Recorte/Baixa ' + D0_DATA.days.RECORTE.elapsed + '/' + D0_DATA.days.RECORTE.total + ' (seg-sex) — hoje conta como decorrido se for dia útil pela regra da categoria.<br>' +
+      'Categoria selecionada: <b>' + meta.label + '</b> (' + meta.sub + '). "Até hoje (mês)" = realizado do mês inteiro somando a base consolidada (EXECUTADOS) com o tempo real de hoje (EXECUTADOS_DO_DIA), sem contar duas vezes o mesmo serviço (deduplicado pelo número da Nota). "Hoje" = só os serviços de hoje.<br>' +
+      '"Projeção" = ritmo de dia útil (realizado em dia com meta ÷ dias úteis já decorridos, pela regra de cada categoria) extrapolado pelos dias úteis totais do mês, MAIS ritmo de sábado (realizado em sábado ÷ sábados já decorridos no mês, já que sábado nunca tem meta mas tem produção) extrapolado pelos sábados totais do mês. Por isso a % de projeção pode ser diferente da % de hoje: ela também carrega a produção de fim de semana, que a meta proporcional nunca considera. Domingo nunca produz e nunca entra na conta.<br>' +
+      'Dias úteis do mês corrente considerados até agora: Corte ' + D0_DATA.days.CORTE.elapsed + '/' + D0_DATA.days.CORTE.total + ' (seg-qui); Recorte/Baixa ' + D0_DATA.days.RECORTE.elapsed + '/' + D0_DATA.days.RECORTE.total + ' (seg-sex); Sábados ' + D0_DATA.days.SABADO.elapsed + '/' + D0_DATA.days.SABADO.total + ' (sem meta) — hoje conta como decorrido se já tiver passado.<br>' +
       'A base de tempo real (EXECUTADOS_DO_DIA) é incorporada automaticamente à base consolidada (EXECUTADOS) todos os dias por volta das 20h; esta visão, porém, é recalculada ao vivo toda vez que a página é carregada, independente desse horário.';
   }
 
