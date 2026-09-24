@@ -2079,7 +2079,7 @@
   function wfmBuildExportRows() {
     return wfmFilteredRows().map(function (r) {
       return {
-        Nota: r.nota, 'Tipo de serviço': r.tipo, UTD: r.unit, Equipe: r.equipe,
+        Nota: r.nota, 'Tipo de serviço': r.tipo, UTD: r.unit, Equipe: equipeDisplayLabel(r.equipe),
         'Gerência SIRTEC': r.gerencia_sirtec || '(sem gerência)',
         Data: fmtDate2(r.date), 'Consta no WFM': r.consta ? 'Sim' : 'Não'
       };
