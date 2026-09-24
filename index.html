@@ -219,6 +219,7 @@
     <div class="tabs" id="view-switch">
       <button type="button" class="tab-btn active" data-view="d1"><span>Consolidado mês<span class="tab-sub">histórico fechado</span></span></button>
       <button type="button" class="tab-btn" data-view="d0"><span>D+0 Tempo real<span class="tab-sub">em andamento</span></span></button>
+      <button type="button" class="tab-btn" data-view="wfm"><span>Acompanhamento WFM<span class="tab-sub">GPM x WFM (Coelba)</span></span></button>
     </div>
   </div>
 
@@ -365,6 +366,62 @@
     <footer class="note" id="d0-footnote"></footer>
 
   </div>
+
+  <div class="wrap" id="view-wfm" style="display:none;">
+
+    <header class="page-head">
+      <h1>Acompanhamento WFM — aderência GPM x WFM</h1>
+      <p class="subtitle" id="wfm-subtitle"></p>
+    </header>
+
+    <div class="stat-row" id="wfm-stat-row"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Aderência diária</h2>
+        <span class="panel-note" id="wfm-daily-note"></span>
+      </div>
+      <div class="filters-row">
+        <div class="filter-field">
+          <label for="wfm-date-start">De</label>
+          <input type="date" id="wfm-date-start">
+        </div>
+        <div class="filter-field">
+          <label for="wfm-date-end">Até</label>
+          <input type="date" id="wfm-date-end">
+        </div>
+        <button type="button" class="filter-reset" id="wfm-date-reset">Período completo</button>
+      </div>
+      <div class="table-wrap">
+        <table id="wfm-daily-table" class="mono">
+          <thead><tr><th style="text-align:left;">Data</th><th>Dia</th><th>Total GPM</th><th>Consta no WFM</th><th>Não consta</th><th>% Aderência</th></tr></thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">% Aderência por unidade x dia</h2>
+        <span class="panel-note" id="wfm-matrix-note"></span>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--critical)"></span> &lt; 60%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--warning)"></span> 60–80%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--good)"></span> ≥ 80%</span>
+      </div>
+      <div class="table-wrap">
+        <table id="wfm-matrix-table" class="mono">
+          <thead><tr id="wfm-matrix-head"></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="note" id="wfm-footnote"></footer>
+
+  </div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
@@ -380,8 +437,15 @@
   //   - TOTAL = sum of the 3 already-proportionalized categories
   // ==================================================================
   var SHEET_ID = '14epjhldZjsWsXsPsQ4geso46T85qkKNVk9vR_w-apR4';
+  // Planilha "Base de Dados - Acompanhamento WFM (Sirtec)", separada da de Metas Físicas
+  // acima. Vazio até o usuário criar a planilha (a partir do esqueleto BASE_GPM/BASE_WFM
+  // enviado) e me passar o ID/link — a aba WFM mostra um aviso amigável enquanto isso.
+  var SHEET_ID_WFM = '';
   function gvizUrl(sheetName) {
-    return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheetName) + '&_=' + Date.now();
+    return gvizUrlFor(SHEET_ID, sheetName);
+  }
+  function gvizUrlFor(sheetId, sheetName) {
+    return 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheetName) + '&_=' + Date.now();
   }
 
   function parseCSV(text) {
@@ -406,7 +470,11 @@
   }
 
   async function fetchSheetRows(sheetName) {
-    var res = await fetch(gvizUrl(sheetName), { cache: 'no-store' });
+    return fetchSheetRowsFrom(SHEET_ID, sheetName);
+  }
+
+  async function fetchSheetRowsFrom(sheetId, sheetName) {
+    var res = await fetch(gvizUrlFor(sheetId, sheetName), { cache: 'no-store' });
     if (!res.ok) throw new Error('Falha ao buscar a aba "' + sheetName + '" da planilha (HTTP ' + res.status + ').');
     var text = await res.text();
     return parseCSV(text);
@@ -1029,6 +1097,16 @@
   var d0LoadedAt = null;
   function renderTopbarMeta() {
     var el = document.getElementById('topbar-meta');
+    if (currentView === 'wfm') {
+      if (wfmError) {
+        el.style.color = 'var(--critical)';
+        el.textContent = 'Não foi possível carregar o Acompanhamento WFM';
+      } else {
+        el.style.color = '';
+        el.textContent = wfmLoaded ? 'Base GPM x WFM carregada' : 'Buscando base GPM x WFM...';
+      }
+      return;
+    }
     if (currentView === 'd0') {
       el.style.color = '';
       var p2 = function (n) { return String(n).padStart(2, '0'); };
@@ -1554,6 +1632,237 @@
       'A base de tempo real (EXECUTADOS_DO_DIA) é incorporada automaticamente à base consolidada (EXECUTADOS) todos os dias por volta das 20h; esta visão, porém, é recalculada ao vivo toda vez que a página é carregada, independente desse horário.';
   }
 
+  // ==================================================================
+  // WFM ENGINE — separate spreadsheet (SHEET_ID_WFM) from the Metas Físicas
+  // one above. Reads two trimmed base tabs:
+  //   BASE_GPM: Nota, tipo_servico, UTD, DATA, equipe (one row per serviço
+  //     executado no sistema próprio GPM — situacao_servico já vem sempre
+  //     CONCLUIDO nessa base, então toda linha conta como "executado")
+  //   BASE_WFM: Nota, Equipe, Status, Last Modified Date, Territorio UTD,
+  //     Nota real (Nota real = número sem o prefixo "CA", é a chave de
+  //     cruzamento com BASE_GPM.Nota)
+  // Aderência = nº de Notas do GPM que aparecem em BASE_WFM."Nota real"
+  // (qualquer Status, Concluído ou Incompleto) ÷ total de Notas do GPM,
+  // por dia (DATA) e por unidade (UTD). Fórmula conferida linha a linha
+  // contra a aba "Dashboard Aderência" do Excel de origem do usuário.
+  // ==================================================================
+  function tierAderencia(pct) { return pct >= 80 ? 'good' : (pct >= 60 ? 'warning' : 'critical'); }
+  function tdCell(val, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</td>'; }
+
+  async function computeWfmData() {
+    if (!SHEET_ID_WFM) throw new Error('A planilha de Acompanhamento WFM ainda não foi configurada neste arquivo (SHEET_ID_WFM vazio).');
+
+    var gpmRows = await fetchSheetRowsFrom(SHEET_ID_WFM, 'BASE_GPM');
+    var wfmRows = await fetchSheetRowsFrom(SHEET_ID_WFM, 'BASE_WFM');
+    if (!gpmRows.length) throw new Error('A aba BASE_GPM está vazia ou não pôde ser lida.');
+    if (!wfmRows.length) throw new Error('A aba BASE_WFM está vazia ou não pôde ser lida.');
+
+    function colIndex(header, name) {
+      for (var i = 0; i < header.length; i++) if (String(header[i]).trim() === name) return i;
+      return -1;
+    }
+
+    var gHeader = gpmRows[0];
+    var giNota = colIndex(gHeader, 'Nota'), giUtd = colIndex(gHeader, 'UTD'), giData = colIndex(gHeader, 'DATA');
+    if (giNota < 0 || giUtd < 0 || giData < 0) throw new Error('A aba BASE_GPM não tem as colunas esperadas (Nota, UTD, DATA).');
+
+    var wHeader = wfmRows[0];
+    var wiNotaReal = colIndex(wHeader, 'Nota real');
+    if (wiNotaReal < 0) throw new Error('A aba BASE_WFM não tem a coluna "Nota real".');
+
+    var wfmNotaSet = {};
+    for (var rw = 1; rw < wfmRows.length; rw++) {
+      var wrow = wfmRows[rw];
+      if (!wrow || !wrow.length) continue;
+      var nr = wrow[wiNotaReal];
+      if (nr) wfmNotaSet[String(nr).trim()] = true;
+    }
+
+    var byDate = {}, byUnit = {}, byUnitDate = {}, dateSet = {};
+    for (var rg = 1; rg < gpmRows.length; rg++) {
+      var grow = gpmRows[rg];
+      if (!grow || !grow.length) continue;
+      var nota = grow[giNota];
+      if (!nota) continue;
+      var d = parseDateFlexible(grow[giData]);
+      if (!d) continue;
+      var iso = isoDate(d);
+      var unit = (grow[giUtd] || '').trim() || '(sem UTD)';
+      var consta = !!wfmNotaSet[String(nota).trim()];
+
+      dateSet[iso] = true;
+      if (!byDate[iso]) byDate[iso] = { total: 0, consta: 0 };
+      byDate[iso].total++; if (consta) byDate[iso].consta++;
+
+      if (!byUnit[unit]) byUnit[unit] = { total: 0, consta: 0 };
+      byUnit[unit].total++; if (consta) byUnit[unit].consta++;
+
+      if (!byUnitDate[unit]) byUnitDate[unit] = {};
+      if (!byUnitDate[unit][iso]) byUnitDate[unit][iso] = { total: 0, consta: 0 };
+      byUnitDate[unit][iso].total++; if (consta) byUnitDate[unit][iso].consta++;
+    }
+
+    var dates = Object.keys(dateSet).sort();
+    var units = Object.keys(byUnit).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); });
+    var WEEKDAY_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    var daily = dates.map(function (iso) {
+      var v = byDate[iso];
+      var pct = v.total ? (v.consta / v.total * 100) : 0;
+      var dd = parseDateFlexible(iso);
+      return { date: iso, dia: WEEKDAY_PT[dd.getDay()], total: v.total, consta: v.consta, nao_consta: v.total - v.consta, pct: pct };
+    });
+
+    var totalGpm = 0, totalConsta = 0;
+    daily.forEach(function (d) { totalGpm += d.total; totalConsta += d.consta; });
+    var pctGeral = totalGpm ? (totalConsta / totalGpm * 100) : 0;
+
+    var melhorDia = null, piorDia = null;
+    daily.forEach(function (d) {
+      if (!melhorDia || d.pct > melhorDia.pct) melhorDia = d;
+      if (!piorDia || d.pct < piorDia.pct) piorDia = d;
+    });
+
+    return {
+      dates: dates, units: units, daily: daily, byUnitDate: byUnitDate, byUnit: byUnit,
+      total_gpm: totalGpm, total_consta: totalConsta, total_nao_consta: totalGpm - totalConsta, pct_geral: pctGeral,
+      melhor_dia: melhorDia, pior_dia: piorDia
+    };
+  }
+
+  var wfmLoaded = false;
+  var wfmError = null;
+  var WFM_DATA = null;
+  var wfmFilterStart = null, wfmFilterEnd = null;
+
+  function wfmRowsInRange(list, dateOf) {
+    return list.filter(function (item) {
+      var iso = dateOf(item);
+      return (!wfmFilterStart || iso >= wfmFilterStart) && (!wfmFilterEnd || iso <= wfmFilterEnd);
+    });
+  }
+
+  function renderWfmStatRow() {
+    var D = WFM_DATA;
+    var stats = [
+      { label: 'Total GPM', value: fmt(D.total_gpm), sub: 'notas executadas (histórico completo)' },
+      { label: 'Consta no WFM', value: fmt(D.total_consta), sub: 'notas preenchidas no WFM' },
+      { label: 'Não consta', value: fmt(D.total_nao_consta), sub: 'faltando preencher no WFM' },
+      { label: 'Aderência geral', value: fmt1(D.pct_geral) + '%', sub: 'Consta ÷ Total GPM', accent: true, color: 'var(--' + tierAderencia(D.pct_geral) + ')' },
+      { label: 'Melhor dia', value: D.melhor_dia ? fmt1(D.melhor_dia.pct) + '%' : '—', sub: D.melhor_dia ? fmtDate2(D.melhor_dia.date) : 'sem dados' },
+      { label: 'Pior dia', value: D.pior_dia ? fmt1(D.pior_dia.pct) + '%' : '—', sub: D.pior_dia ? fmtDate2(D.pior_dia.date) : 'sem dados' }
+    ];
+    renderStatRow(document.getElementById('wfm-stat-row'), stats);
+  }
+
+  function renderWfmDailyTable() {
+    var D = WFM_DATA;
+    var rows = wfmRowsInRange(D.daily, function (d) { return d.date; });
+    var tbody = document.querySelector('#wfm-daily-table tbody');
+    clearChildren(tbody);
+    rows.forEach(function (d) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td style="text-align:left;">' + fmtDate2(d.date) + '</td>' +
+        '<td>' + d.dia + '</td>' +
+        '<td>' + fmt(d.total) + '</td>' +
+        '<td>' + fmt(d.consta) + '</td>' +
+        '<td>' + fmt(d.nao_consta) + '</td>' +
+        tdCell(fmt1(d.pct) + '%', 'cell-' + tierAderencia(d.pct));
+      tbody.appendChild(tr);
+    });
+    var totTotal = 0, totConsta = 0;
+    rows.forEach(function (d) { totTotal += d.total; totConsta += d.consta; });
+    var totPct = totTotal ? (totConsta / totTotal * 100) : 0;
+    document.querySelector('#wfm-daily-table tfoot').innerHTML =
+      '<tr><td style="text-align:left;"><b>TOTAL</b></td><td></td><td>' + fmt(totTotal) + '</td><td>' + fmt(totConsta) + '</td><td>' + fmt(totTotal - totConsta) + '</td>' +
+      tdCell(fmt1(totPct) + '%', 'cell-' + tierAderencia(totPct)) + '</tr>';
+    document.getElementById('wfm-daily-note').textContent = rows.length + ' dia(s)' + ((wfmFilterStart || wfmFilterEnd) ? ' no período filtrado (de ' + D.dates.length + ' no total).' : ' — histórico completo.');
+  }
+
+  function renderWfmMatrixTable() {
+    var D = WFM_DATA;
+    var dates = wfmRowsInRange(D.dates, function (iso) { return iso; });
+    var headHtml = '<th style="text-align:left;">Unidade</th>';
+    dates.forEach(function (iso) { headHtml += '<th>' + fmtDate(iso) + '</th>'; });
+    headHtml += '<th class="col-group-start">Geral</th>';
+    document.getElementById('wfm-matrix-head').innerHTML = headHtml;
+
+    var tbody = document.querySelector('#wfm-matrix-table tbody');
+    clearChildren(tbody);
+    D.units.forEach(function (unit) {
+      var html = '<td style="text-align:left;">' + unit + '</td>';
+      dates.forEach(function (iso) {
+        var v = D.byUnitDate[unit] && D.byUnitDate[unit][iso];
+        if (!v || !v.total) { html += '<td>—</td>'; return; }
+        var pct = v.consta / v.total * 100;
+        html += tdCell(fmt1(pct) + '%', 'cell-' + tierAderencia(pct));
+      });
+      var overall = D.byUnit[unit];
+      var overallPct = overall && overall.total ? (overall.consta / overall.total * 100) : null;
+      html += overallPct === null ? '<td>—</td>' : tdCell(fmt1(overallPct) + '%', 'cell-' + tierAderencia(overallPct));
+      var tr = document.createElement('tr');
+      tr.innerHTML = html;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('wfm-matrix-note').textContent = dates.length + ' dia(s) exibido(s)' +
+      (dates.length !== D.dates.length ? ' de ' + D.dates.length + ' no total — ajuste o filtro de data acima para ver outro período.' : '.');
+  }
+
+  async function loadWfm() {
+    var subtitleEl = document.getElementById('wfm-subtitle');
+    subtitleEl.textContent = 'Carregando base GPM x WFM...';
+    wfmError = null;
+    try {
+      WFM_DATA = await computeWfmData();
+      wfmLoaded = true;
+
+      var lastDate = WFM_DATA.dates.length ? WFM_DATA.dates[WFM_DATA.dates.length - 1] : null;
+      if (lastDate) {
+        var endD = parseDateFlexible(lastDate);
+        var startD = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate() - 30);
+        wfmFilterStart = isoDate(startD);
+        wfmFilterEnd = lastDate;
+        document.getElementById('wfm-date-start').value = wfmFilterStart;
+        document.getElementById('wfm-date-end').value = wfmFilterEnd;
+      }
+
+      subtitleEl.textContent = 'Aderência GPM x WFM (Coelba) · ' + WFM_DATA.dates.length + ' dia(s) na base · ' + WFM_DATA.units.length + ' unidade(s).';
+      renderWfmStatRow();
+      renderWfmDailyTable();
+      renderWfmMatrixTable();
+      document.getElementById('wfm-footnote').innerHTML =
+        'Aderência = notas executadas na GPM (aba BASE_GPM) cujo número consta na base do WFM (aba BASE_WFM, coluna "Nota real", qualquer status) ÷ total de notas executadas na GPM — calculada por dia (DATA) e por unidade (UTD). ' +
+        'Por padrão as tabelas mostram os últimos 31 dias com dados; use os filtros de data para ver o histórico completo ou outro período. ' +
+        'CPF, RG, telefone, endereço e nome de cliente não fazem parte desta base — ela guarda só o necessário para o indicador (Nota, tipo de serviço, unidade, data, equipe).';
+      renderTopbarMeta();
+    } catch (err) {
+      wfmError = err;
+      subtitleEl.textContent = '';
+      document.getElementById('wfm-stat-row').innerHTML = '';
+      document.getElementById('wfm-daily-note').textContent = '';
+      document.getElementById('wfm-matrix-note').textContent = '';
+      document.getElementById('wfm-footnote').innerHTML = '<span style="color:var(--critical)">Não foi possível carregar o Acompanhamento WFM: ' + err.message + '</span>';
+      console.error(err);
+      renderTopbarMeta();
+    }
+  }
+
+  document.getElementById('wfm-date-start').addEventListener('change', function (e) {
+    wfmFilterStart = e.target.value || null;
+    if (wfmLoaded) { renderWfmDailyTable(); renderWfmMatrixTable(); }
+  });
+  document.getElementById('wfm-date-end').addEventListener('change', function (e) {
+    wfmFilterEnd = e.target.value || null;
+    if (wfmLoaded) { renderWfmDailyTable(); renderWfmMatrixTable(); }
+  });
+  document.getElementById('wfm-date-reset').addEventListener('click', function () {
+    wfmFilterStart = null; wfmFilterEnd = null;
+    document.getElementById('wfm-date-start').value = '';
+    document.getElementById('wfm-date-end').value = '';
+    if (wfmLoaded) { renderWfmDailyTable(); renderWfmMatrixTable(); }
+  });
+
   var viewSwitchEl = document.getElementById('view-switch');
   Array.prototype.forEach.call(viewSwitchEl.querySelectorAll('.tab-btn'), function (btn) {
     btn.addEventListener('click', function () {
@@ -1564,8 +1873,10 @@
       });
       document.getElementById('view-d1').style.display = view === 'd1' ? '' : 'none';
       document.getElementById('view-d0').style.display = view === 'd0' ? '' : 'none';
+      document.getElementById('view-wfm').style.display = view === 'wfm' ? '' : 'none';
       renderTopbarMeta();
       if (view === 'd0' && !d0Loaded) loadD0();
+      if (view === 'wfm' && !wfmLoaded) loadWfm();
     });
   });
 
