@@ -450,7 +450,7 @@
       <div class="wfm-topgrid" id="wfm-stat-row"></div>
 
       <div class="wfm-card" style="margin-top:12px;">
-        <div class="wfm-card-title">Unidades</div>
+        <div class="wfm-card-title">Unidades <span class="wfm-card-title-hint">(clique para filtrar — filtra também o painel de Equipe)</span></div>
         <div class="wfm-bars-row wfm-bars-scroll" id="wfm-unit-bars"></div>
       </div>
 
@@ -1864,6 +1864,7 @@
   var WFM_DATA = null;
   var wfmFilterStart = null, wfmFilterEnd = null;
   var wfmFilterGerencia = null;
+  var wfmFilterUnit = null;
 
   function wfmRowsInRange(list, dateOf) {
     return list.filter(function (item) {
@@ -1872,10 +1873,30 @@
     });
   }
 
+  // Linhas no período, sem aplicar nenhum filtro de gerência/unidade — usado para popular
+  // as próprias barras de Gerência SIRTEC, para que todas continuem visíveis e clicáveis.
+  function wfmRowsForGerenciaScope() {
+    return wfmRowsInRange(WFM_DATA.rows, function (r) { return r.date; });
+  }
+
+  // Linhas no período + filtro de gerência (se houver), mas SEM o filtro de unidade — usado
+  // para popular as barras de Unidades, para que todas as unidades da gerência selecionada
+  // continuem visíveis e clicáveis (permitindo trocar de unidade com um clique).
+  function wfmRowsForUnitScope() {
+    var rows = wfmRowsInRange(WFM_DATA.rows, function (r) { return r.date; });
+    if (wfmFilterGerencia) {
+      rows = rows.filter(function (r) { return (r.gerencia_sirtec || '(sem gerência)') === wfmFilterGerencia; });
+    }
+    return rows;
+  }
+
   function wfmFilteredRows() {
     var rows = wfmRowsInRange(WFM_DATA.rows, function (r) { return r.date; });
     if (wfmFilterGerencia) {
       rows = rows.filter(function (r) { return (r.gerencia_sirtec || '(sem gerência)') === wfmFilterGerencia; });
+    }
+    if (wfmFilterUnit) {
+      rows = rows.filter(function (r) { return (r.unit || '(sem UTD)') === wfmFilterUnit; });
     }
     return rows;
   }
@@ -1979,10 +2000,9 @@
       '<div class="wfm-card"><div class="wfm-card-title">Operação</div><div class="wfm-bars-row" id="wfm-op-bar"></div></div>' +
       '<div class="wfm-card"><div class="wfm-card-title">Gerência SIRTEC <span class="wfm-card-title-hint">(clique para filtrar)</span></div><div class="wfm-bars-row" id="wfm-gerencia-sirtec-bars"></div></div>';
     wfmRenderBarGroup('wfm-op-bar', [{ label: 'STC BA', total: total, consta: consta, pct: total ? (consta / total * 100) : 0 }]);
-    // A lista de gerências vem calculada sobre TODAS as notas (sem o filtro de gerência já aplicado),
-    // para que as opções de clique continuem visíveis mesmo com uma gerência já selecionada.
-    var allRowsForGerencia = wfmRowsInRange(WFM_DATA.rows, function (r) { return r.date; });
-    var gerenciaBars = wfmAggregate(allRowsForGerencia, function (r) { return r.gerencia_sirtec; })
+    // A lista de gerências vem calculada sobre TODAS as notas (sem os filtros de gerência/unidade já
+    // aplicados), para que as opções de clique continuem visíveis mesmo com um filtro já selecionado.
+    var gerenciaBars = wfmAggregate(wfmRowsForGerenciaScope(), function (r) { return r.gerencia_sirtec; })
       .sort(function (a, b) {
         var order = ['Centro', 'Centro Oeste', 'Oeste', 'Sudoeste'];
         var ia = order.indexOf(a.label), ib = order.indexOf(b.label);
@@ -1994,6 +2014,7 @@
       activeLabel: wfmFilterGerencia,
       onClick: function (label) {
         wfmFilterGerencia = (wfmFilterGerencia === label) ? null : label;
+        wfmFilterUnit = null; // a unidade selecionada pode não pertencer à nova gerência
         var sel = document.getElementById('wfm-gerencia-filter');
         if (sel) sel.value = wfmFilterGerencia || '';
         renderWfmAll();
@@ -2002,9 +2023,18 @@
   }
 
   function renderWfmUnitBars() {
-    var rows = wfmFilteredRows();
+    // Mesma lógica das barras de Gerência: calculadas sem o filtro de unidade já aplicado,
+    // para que todas as unidades da gerência atual continuem clicáveis (troca direta de unidade).
+    var rows = wfmRowsForUnitScope();
     var bars = wfmAggregate(rows, function (r) { return r.unit; }).sort(function (a, b) { return b.pct - a.pct; });
-    wfmRenderBarGroup('wfm-unit-bars', bars);
+    wfmRenderBarGroup('wfm-unit-bars', bars, null, {
+      clickable: true,
+      activeLabel: wfmFilterUnit,
+      onClick: function (label) {
+        wfmFilterUnit = (wfmFilterUnit === label) ? null : label;
+        renderWfmAll();
+      }
+    });
   }
 
   function renderWfmEquipeBars() {
@@ -2055,7 +2085,8 @@
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(naoFez), 'Notas faltantes no WFM');
     var periodo = (wfmFilterStart || 'inicio') + '_a_' + (wfmFilterEnd || 'fim');
     var gerenciaSuffix = wfmFilterGerencia ? '_' + wfmFilterGerencia.replace(/[^a-zA-Z0-9]+/g, '_') : '';
-    XLSX.writeFile(wb, 'aderencia_wfm_' + periodo + gerenciaSuffix + '.xlsx');
+    var unitSuffix = wfmFilterUnit ? '_' + wfmFilterUnit.replace(/[^a-zA-Z0-9]+/g, '_') : '';
+    XLSX.writeFile(wb, 'aderencia_wfm_' + periodo + gerenciaSuffix + unitSuffix + '.xlsx');
   }
 
   async function loadWfm() {
@@ -2081,7 +2112,7 @@
       renderWfmAll();
       document.getElementById('wfm-footnote').innerHTML =
         'Aderência = notas executadas na GPM (aba BASE_GPM) cujo número consta na base do WFM (aba BASE_WFM, coluna "Nota real" ou, quando vazia, extraído da coluna "Nota") ÷ total de notas executadas na GPM — calculada por dia (DATA), unidade (UTD), equipe e Gerência SIRTEC. ' +
-        'Por padrão os gráficos mostram os últimos 31 dias com dados; use os filtros de período acima, o seletor de Gerência SIRTEC, ou clique direto em uma barra do card "Gerência SIRTEC" para isolar uma gerência (inclusive "(sem gerência)") — todos os painéis (incluindo a exportação em Excel) respeitam esse filtro; clique de novo na mesma barra para limpar. ' +
+        'Por padrão os gráficos mostram os últimos 31 dias com dados; use os filtros de período acima, o seletor de Gerência SIRTEC, ou clique direto em uma barra dos cards "Gerência SIRTEC" ou "Unidades" para isolar uma gerência/unidade (inclusive "(sem gerência)") — todos os painéis (incluindo o de Equipe e a exportação em Excel) respeitam esses filtros; clique de novo na mesma barra para limpar. ' +
         'Gerência COELBA ainda não tem o mapeamento de unidades definido. ' +
         'CPF, RG, telefone, endereço e nome de cliente não fazem parte desta base — ela guarda só o necessário para o indicador (Nota, tipo de serviço, unidade, data, equipe).';
       renderTopbarMeta();
@@ -2114,6 +2145,7 @@
   });
   document.getElementById('wfm-gerencia-filter').addEventListener('change', function (e) {
     wfmFilterGerencia = e.target.value || null;
+    wfmFilterUnit = null; // a unidade selecionada pode não pertencer à nova gerência
     if (wfmLoaded) renderWfmAll();
   });
   document.getElementById('wfm-export-btn').addEventListener('click', function () {
