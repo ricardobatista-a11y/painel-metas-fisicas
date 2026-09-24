@@ -283,6 +283,7 @@
 
     <div class="tabs" id="tabs"></div>
     <div class="tabs" id="region-tabs"></div>
+    <div class="tabs" id="gerente-tabs" style="margin-top:6px;"></div>
 
     <div class="stat-row five" id="stat-row"></div>
 
@@ -379,6 +380,7 @@
     </header>
 
     <div class="tabs" id="d0-tabs"></div>
+    <div class="tabs" id="d0-gerente-tabs" style="margin-top:6px;"></div>
 
     <div class="stat-row" id="d0-stat-row"></div>
 
@@ -598,6 +600,18 @@
     'Santa Maria da Vitória': 'OESTE', 'Ibotirama': 'OESTE',
     'Guanambi': 'SUDOESTE', 'Itapetinga': 'SUDOESTE', 'Vitória da Conquista': 'SUDOESTE', 'Brumado': 'SUDOESTE',
     'Seabra': 'CENTRO_OESTE'
+  };
+
+  // Agrupamento de unidades por Gerência (gerente responsável), informado pelo usuário —
+  // dimensão independente do contrato/região acima (um gerente pode cobrir unidades de mais
+  // de um contrato). Chave = nome de exibição (displayName), igual ao REGION_MAP.
+  var GERENTE_ORDER = ['Felippe', 'Leandro', 'Alex', 'Claudinei'];
+  var GERENTE_MAP = {
+    'Feira de Santana Sul': 'Felippe', 'Feira de Santana Norte': 'Felippe', 'Santo Amaro': 'Felippe',
+    'Serrinha': 'Felippe', 'Conceição do Coité': 'Felippe', 'Itaberaba': 'Felippe', 'Seabra': 'Felippe', 'Irecê': 'Felippe',
+    'Barreiras': 'Leandro', 'Luís Eduardo Magalhães': 'Leandro', 'Ibotirama': 'Leandro',
+    'Guanambi': 'Alex', 'Brumado': 'Alex', 'Livramento de Nossa Senhora': 'Alex', 'Bom Jesus da Lapa': 'Alex', 'Santa Maria da Vitória': 'Alex',
+    'Vitória da Conquista': 'Claudinei', 'Itapetinga': 'Claudinei', 'Jequié': 'Claudinei'
   };
 
   // Mapa Equipe -> UTD real, informado pelo usuario (lista da Coelba/GPM por turma).
@@ -1074,6 +1088,14 @@
   var CAT_COLOR_HEX = { CORTE: '#2bd490', RECORTE: '#ff5c66', BAIXA: '#ffc94a' };
   var currentCat = 'TOTAL';
   var currentRegion = 'ALL';
+  var currentGerente = 'ALL';
+
+  // Uma unidade passa se bater com o contrato/região selecionado E com o gerente selecionado
+  // (os dois filtros são independentes e se combinam por E — ambos em "Todos" = tudo passa).
+  function unitPassesFilters(u) {
+    return (currentRegion === 'ALL' || REGION_MAP[u] === currentRegion) &&
+      (currentGerente === 'ALL' || GERENTE_MAP[u] === currentGerente);
+  }
 
   // Corte só tem meta seg-qui; recorte e baixa têm meta seg-sex (podem ser executados
   // em qualquer dia útil, só não têm meta sáb/dom).
@@ -1248,6 +1270,34 @@
     });
   });
 
+  // ---- gerência tabs (filtro por gerente responsável, independente do contrato acima) ----
+  var gerenteTabsEl = document.getElementById('gerente-tabs');
+  var gerenteBtnAll = document.createElement('button');
+  gerenteBtnAll.type = 'button';
+  gerenteBtnAll.className = 'tab-btn active';
+  gerenteBtnAll.dataset.gerente = 'ALL';
+  gerenteBtnAll.innerHTML = '<span>Todas as gerências</span>';
+  gerenteTabsEl.appendChild(gerenteBtnAll);
+  GERENTE_ORDER.forEach(function (g) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn';
+    btn.dataset.gerente = g;
+    btn.innerHTML = '<span>' + g + '</span>';
+    gerenteTabsEl.appendChild(btn);
+  });
+  Array.prototype.forEach.call(gerenteTabsEl.querySelectorAll('.tab-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      currentGerente = btn.dataset.gerente;
+      Array.prototype.forEach.call(gerenteTabsEl.querySelectorAll('.tab-btn'), function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      rebuildUnitOptions();
+      renderDailyChart();
+      render();
+    });
+  });
+
   // ---- daily chart: date + unit filters ----
   var allDates = DATA.dates;
   var dateStartInput = document.getElementById('date-start');
@@ -1263,19 +1313,18 @@
 
   function rebuildUnitOptions() {
     var prev = unitSelect.value;
+    var anyFilter = currentRegion !== 'ALL' || currentGerente !== 'ALL';
     clearChildren(unitSelect);
     var unitOpt = document.createElement('option');
     unitOpt.value = '__ALL__';
-    unitOpt.textContent = currentRegion === 'ALL' ? 'Todas as unidades' : 'Todas do contrato';
+    unitOpt.textContent = anyFilter ? 'Todas as unidades filtradas' : 'Todas as unidades';
     unitSelect.appendChild(unitOpt);
-    Object.keys(DATA.daily_by_unit).sort().filter(function (u) {
-      return currentRegion === 'ALL' || REGION_MAP[u] === currentRegion;
-    }).forEach(function (u) {
+    Object.keys(DATA.daily_by_unit).sort().filter(unitPassesFilters).forEach(function (u) {
       var o = document.createElement('option');
       o.value = u; o.textContent = u;
       unitSelect.appendChild(o);
     });
-    // keep the previous selection if it's still a valid option under the new region filter
+    // keep the previous selection if it's still a valid option under the new filters
     var stillValid = Array.prototype.some.call(unitSelect.options, function (o) { return o.value === prev; });
     unitSelect.value = stillValid ? prev : '__ALL__';
   }
@@ -1284,9 +1333,9 @@
   function getDailySeries() {
     var u = unitSelect.value;
     if (u !== '__ALL__' && u) return DATA.daily_by_unit[u] || [];
-    if (currentRegion === 'ALL') return DATA.daily_all;
-    // "Todas as unidades" dentro de um contrato: soma dia a dia só as unidades daquele contrato.
-    var units = Object.keys(DATA.daily_by_unit).filter(function (un) { return REGION_MAP[un] === currentRegion; });
+    if (currentRegion === 'ALL' && currentGerente === 'ALL') return DATA.daily_all;
+    // "Todas as unidades filtradas": soma dia a dia só as unidades que passam nos filtros ativos.
+    var units = Object.keys(DATA.daily_by_unit).filter(unitPassesFilters);
     var byDate = {};
     units.forEach(function (un) {
       (DATA.daily_by_unit[un] || []).forEach(function (d) {
@@ -1349,9 +1398,11 @@
     var totRecorte = filtered.reduce(function (s, d) { return s + d.RECORTE; }, 0);
     var totBaixa = filtered.reduce(function (s, d) { return s + d.BAIXA; }, 0);
 
-    var regionNote = currentRegion === 'ALL' ? '' : ' · contrato ' + REGION_LABEL[currentRegion];
+    var filterNote = (currentRegion === 'ALL' ? '' : ' · contrato ' + REGION_LABEL[currentRegion]) +
+      (currentGerente === 'ALL' ? '' : ' · gerência ' + currentGerente);
+    var anyFilterActive = currentRegion !== 'ALL' || currentGerente !== 'ALL';
     document.getElementById('daily-note').textContent = filtered.length + ' dia(s) no período · ' +
-      (unitSelect.value === '__ALL__' ? (currentRegion === 'ALL' ? 'todas as unidades' : 'todas do contrato') : unitSelect.value) + regionNote;
+      (unitSelect.value === '__ALL__' ? (anyFilterActive ? 'todas as unidades filtradas' : 'todas as unidades') : unitSelect.value) + filterNote;
 
     renderStatRow(document.getElementById('daily-stat-row'), [
       { label: 'Corte no período', value: fmt(totCorte), sub: 'serviços concluídos', color: 'var(--corte)', accent: true },
@@ -1374,8 +1425,9 @@
     var cat = currentCat;
     var meta = CAT_META[cat];
     var d = DATA.dataset[cat];
-    var rows = currentRegion === 'ALL' ? d.rows : d.rows.filter(function (r) { return REGION_MAP[r.unidade] === currentRegion; });
-    var totals = currentRegion === 'ALL' ? d.totals : aggregateD1Totals(rows);
+    var anyFilterActive = currentRegion !== 'ALL' || currentGerente !== 'ALL';
+    var rows = anyFilterActive ? d.rows.filter(function (r) { return unitPassesFilters(r.unidade); }) : d.rows;
+    var totals = anyFilterActive ? aggregateD1Totals(rows) : d.totals;
 
     document.getElementById('subtitle').textContent =
       'Serviços concluídos (aba "Executados") comparados à meta cadastrada, proporcionalizada até hoje — ' + ruleSentence(cat) + '. Categoria: ' + meta.label + '.';
@@ -1521,7 +1573,11 @@
 
     document.getElementById('footnote').innerHTML =
       'Categoria selecionada: <b>' + meta.label + '</b> (' + meta.sub + '). Total = soma de corte + recorte + baixa, por unidade. ' +
-      (currentRegion === 'ALL' ? 'Todas as ' + nUnits + ' unidades têm meta cadastrada nesta base.' : 'Contrato <b>' + REGION_LABEL[currentRegion] + '</b>: ' + nUnits + ' unidade(s).') + '<br>' +
+      (!anyFilterActive ? 'Todas as ' + nUnits + ' unidades têm meta cadastrada nesta base.' :
+        [
+          currentRegion !== 'ALL' ? 'contrato <b>' + REGION_LABEL[currentRegion] + '</b>' : null,
+          currentGerente !== 'ALL' ? 'gerência <b>' + currentGerente + '</b>' : null
+        ].filter(Boolean).join(' + ') + ': ' + nUnits + ' unidade(s).') + '<br>' +
       'Corte só tem meta de segunda a quinta (' + DATA.days.CORTE.total + ' dias em setembro/2026, ' + DATA.days.CORTE.elapsed + ' já decorridos até ' + fmtDate2(DATA.as_of) + '). Recorte e baixa ADM podem ser executados em qualquer dia útil e têm meta de segunda a sexta (' + DATA.days.RECORTE.total + ' dias no mês, ' + DATA.days.RECORTE.elapsed + ' já decorridos). Sábado e domingo nunca entram na conta, nem como dia decorrido nem como dia de meta, em nenhuma categoria. No Total, cada categoria é proporcionalizada pela sua própria regra de dias e depois somada.<br>' +
       'Meta proporcional = meta do mês × (dias úteis decorridos até hoje ÷ dias úteis do mês inteiro, pela regra de cada categoria). Meta diária = meta do mês ÷ dias úteis do mês (pela mesma regra). Devendo = (meta diária × dias já decorridos) − realizado, ou seja, o déficit de cada unidade contra o ritmo que deveria ter mantido até hoje. Dias de atraso = devendo ÷ meta diária.<br>' +
       'Análise diária: cada serviço é contado no dia em que foi executado (campo de data de execução). Use os filtros de data e unidade para ver o volume diário de corte, recorte e baixa em qualquer período.<br>' +
@@ -1535,6 +1591,7 @@
   // ==================================================================
   var D0_DATA = null;
   var d0Cat = 'TOTAL';
+  var d0Gerente = 'ALL';
   var d0Loaded = false;
 
   function tierPct(pct) { return pct >= 100 ? 'good' : (pct >= 60 ? 'warning' : 'critical'); }
@@ -1558,6 +1615,32 @@
     d0TabsEl.appendChild(btn);
   });
 
+  // ---- gerência tabs (mesmo filtro por gerente responsável da aba Consolidado mês) ----
+  var d0GerenteTabsEl = document.getElementById('d0-gerente-tabs');
+  var d0GerenteBtnAll = document.createElement('button');
+  d0GerenteBtnAll.type = 'button';
+  d0GerenteBtnAll.className = 'tab-btn active';
+  d0GerenteBtnAll.dataset.gerente = 'ALL';
+  d0GerenteBtnAll.innerHTML = '<span>Todas as gerências</span>';
+  d0GerenteTabsEl.appendChild(d0GerenteBtnAll);
+  GERENTE_ORDER.forEach(function (g) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn';
+    btn.dataset.gerente = g;
+    btn.innerHTML = '<span>' + g + '</span>';
+    d0GerenteTabsEl.appendChild(btn);
+  });
+  Array.prototype.forEach.call(d0GerenteTabsEl.querySelectorAll('.tab-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      d0Gerente = btn.dataset.gerente;
+      Array.prototype.forEach.call(d0GerenteTabsEl.querySelectorAll('.tab-btn'), function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      renderD0();
+    });
+  });
+
   async function loadD0() {
     document.getElementById('d0-subtitle').textContent = 'Buscando dados de hoje na planilha...';
     try {
@@ -1579,6 +1662,9 @@
     var cat = d0Cat;
     var meta = CAT_META[cat];
     var rows = D0_DATA.dataset[cat].rows;
+    if (d0Gerente !== 'ALL') {
+      rows = rows.filter(function (r) { return GERENTE_MAP[r.unidade] === d0Gerente; });
+    }
 
     document.getElementById('d0-subtitle').textContent =
       'Progresso do dia ' + fmtDate2(D0_DATA.hoje) + ' comparado à meta proporcional do mês até agora, com projeção de fechamento pelo ritmo atual (dia útil + sábado). Categoria: ' + meta.label + '.';
@@ -1599,7 +1685,8 @@
       { label: 'Projeção vs. meta do mês', value: fmt1(pctProjTot) + '%', sub: 'meta do mês: ' + fmt(totMetaMes) }
     ]);
 
-    document.getElementById('d0-note').textContent = rows.length + ' unidades · agrupado por contrato (região), com subtotal de cada um';
+    document.getElementById('d0-note').textContent = rows.length + ' unidades · agrupado por contrato (região), com subtotal de cada um' +
+      (d0Gerente === 'ALL' ? '' : ' · gerência ' + d0Gerente);
 
     function cell(val, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</td>'; }
 
