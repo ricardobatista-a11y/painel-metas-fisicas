@@ -2097,12 +2097,13 @@
       WFM_DATA = await computeWfmData();
       wfmLoaded = true;
 
-      var lastDate = WFM_DATA.dates.length ? WFM_DATA.dates[WFM_DATA.dates.length - 1] : null;
-      if (lastDate) {
-        var endD = parseDateFlexible(lastDate);
-        var startD = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate() - 30);
-        wfmFilterStart = isoDate(startD);
-        wfmFilterEnd = lastDate;
+      // Período padrão: os últimos até 31 dias com dados reais (WFM_DATA.dates só contém datas
+      // que têm nota no GPM) — em vez de subtrair 30 dias corridos do calendário, o que podia
+      // fazer o filtro "De" começar num dia sem nenhuma informação na base.
+      if (WFM_DATA.dates.length) {
+        var last31 = WFM_DATA.dates.slice(-31);
+        wfmFilterStart = last31[0];
+        wfmFilterEnd = last31[last31.length - 1];
         document.getElementById('wfm-date-start').value = wfmFilterStart;
         document.getElementById('wfm-date-end').value = wfmFilterEnd;
       }
