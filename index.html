@@ -1668,14 +1668,28 @@
 
     var wHeader = wfmRows[0];
     var wiNotaReal = colIndex(wHeader, 'Nota real');
+    var wiNota = colIndex(wHeader, 'Nota');
     if (wiNotaReal < 0) throw new Error('A aba BASE_WFM não tem a coluna "Nota real".');
 
+    // "Nota real" às vezes chega vazio para lançamentos recém-importados no WFM
+    // (o sistema da Coelba ainda não preencheu essa coluna). Nesses casos,
+    // derivamos o número a partir da coluna "Nota" (ex.: "CR5014706864" -> "5014706864"),
+    // removendo o prefixo de letras — mesma lógica que gerou a coluna "Nota real"
+    // nos lançamentos antigos, então o resultado é equivalente.
     var wfmNotaSet = {};
     for (var rw = 1; rw < wfmRows.length; rw++) {
       var wrow = wfmRows[rw];
       if (!wrow || !wrow.length) continue;
       var nr = wrow[wiNotaReal];
-      if (nr) wfmNotaSet[String(nr).trim()] = true;
+      var key = nr ? String(nr).trim() : '';
+      if (!key && wiNota >= 0) {
+        var rawNota = wrow[wiNota];
+        if (rawNota) {
+          var mDigits = String(rawNota).trim().match(/\d+/);
+          if (mDigits) key = mDigits[0];
+        }
+      }
+      if (key) wfmNotaSet[key] = true;
     }
 
     var byDate = {}, byUnit = {}, byUnitDate = {}, dateSet = {};
