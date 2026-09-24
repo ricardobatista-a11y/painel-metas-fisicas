@@ -2037,9 +2037,20 @@
     });
   }
 
+  // No painel de Equipe mostramos só o código curto (ex.: "4ST507"), sem o complemento entre
+  // parênteses (ex.: "(4G4602)") — esse complemento não identifica a equipe para quem olha o
+  // painel, só o código antes dele. Isso também junta em uma barra só variações do mesmo código
+  // que apareciam com complementos diferentes. O código completo (usado para achar a UTD real
+  // via EQUIPE_UTD_MAP) continua intacto em r.equipe — essa função só afeta a exibição/agrupamento.
+  function equipeDisplayLabel(equipeRaw) {
+    if (!equipeRaw) return equipeRaw;
+    var idx = String(equipeRaw).indexOf(' (');
+    return idx >= 0 ? String(equipeRaw).substring(0, idx) : equipeRaw;
+  }
+
   function renderWfmEquipeBars() {
     var rows = wfmFilteredRows();
-    var bars = wfmAggregate(rows, function (r) { return r.equipe; }).sort(function (a, b) { return b.pct - a.pct; });
+    var bars = wfmAggregate(rows, function (r) { return equipeDisplayLabel(r.equipe); }).sort(function (a, b) { return b.pct - a.pct; });
     wfmRenderBarGroup('wfm-equipe-bars', bars);
   }
 
