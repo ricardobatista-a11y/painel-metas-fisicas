@@ -284,6 +284,7 @@
     <div class="tabs" id="tabs"></div>
     <div class="tabs" id="region-tabs"></div>
     <div class="tabs" id="gerente-tabs" style="margin-top:6px;"></div>
+    <div class="tabs" id="mes-tabs" style="margin-top:6px;"></div>
 
     <div class="stat-row five" id="stat-row"></div>
 
@@ -763,31 +764,35 @@
     if (!maxDate) throw new Error('Nenhuma data de execução válida foi encontrada na aba EXECUTADOS.');
 
     var AS_OF = maxDate;
-    var mesRef = monthKeyOf(AS_OF);
-    var meta = metaByMonth[mesRef];
-    if (!meta || !Object.keys(meta).length) {
-      throw new Error('Não há metas cadastradas para ' + mesRef + ' na aba BASES DE META. Adicione as metas desse mês (mes/unidade/categoria/meta) para o painel atualizar.');
-    }
-    var realizado = execByMonth[mesRef] || {};
-    var year = AS_OF.getFullYear(), month = AS_OF.getMonth();
-    var daysInMonth = new Date(year, month + 1, 0).getDate();
-    var monthDays = [];
-    for (var dd = 1; dd <= daysInMonth; dd++) monthDays.push(new Date(year, month, dd));
-
-    function dayCounts(weekdays) {
-      var total = monthDays.filter(function (d) { return weekdays.indexOf(jsWeekdayMon0(d)) !== -1; });
-      var elapsed = total.filter(function (d) { return d <= AS_OF; });
-      return [total.length, elapsed.length];
-    }
+    var asOfMes = monthKeyOf(AS_OF);
     var CAT_WEEKDAYS = { CORTE: [0, 1, 2, 3], RECORTE: [0, 1, 2, 3, 4], BAIXA: [0, 1, 2, 3, 4] };
     var CAT_RULE_LABEL = { CORTE: 'seg-qui', RECORTE: 'seg-sex', BAIXA: 'seg-sex' };
-    var DAYS = {};
-    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
-      var tc = dayCounts(CAT_WEEKDAYS[cat]);
-      DAYS[cat] = { total: tc[0], elapsed: tc[1], remaining: tc[0] - tc[1], rule: CAT_RULE_LABEL[cat] };
-    });
 
-    function buildCategory(cat) {
+    // Dias do mês "mk" (formato MM/AAAA) e quantos já decorreram. O mês do AS_OF (o mês mais
+    // recente com execução) conta como "em andamento" — decorrido até o próprio AS_OF, igual
+    // antes. Qualquer mês anterior a esse já está fechado: conta como 100% decorrido (mês
+    // inteiro), então a meta proporcional vira igual à meta do mês, o que é o comportamento
+    // certo para olhar o fechamento de um mês passado.
+    function daysForMonth(mk) {
+      var parts = mk.split('/'), mm = parseInt(parts[0], 10) - 1, yyyy = parseInt(parts[1], 10);
+      var daysInMonth = new Date(yyyy, mm + 1, 0).getDate();
+      var monthDays = [];
+      for (var dd = 1; dd <= daysInMonth; dd++) monthDays.push(new Date(yyyy, mm, dd));
+      var cutoff = (mk === asOfMes) ? AS_OF : monthDays[monthDays.length - 1];
+      function dayCounts(weekdays) {
+        var total = monthDays.filter(function (d) { return weekdays.indexOf(jsWeekdayMon0(d)) !== -1; });
+        var elapsed = total.filter(function (d) { return d <= cutoff; });
+        return [total.length, elapsed.length];
+      }
+      var DAYS = {};
+      ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
+        var tc = dayCounts(CAT_WEEKDAYS[cat]);
+        DAYS[cat] = { total: tc[0], elapsed: tc[1], remaining: tc[0] - tc[1], rule: CAT_RULE_LABEL[cat] };
+      });
+      return DAYS;
+    }
+
+    function buildCategory(meta, realizado, DAYS, cat) {
       var totalDays = DAYS[cat].total, elapsedDays = DAYS[cat].elapsed;
       var units = Object.keys(meta).sort();
       var rows = units.map(function (u) {
@@ -810,39 +815,63 @@
       return { rows: rows, totals: totals };
     }
 
-    var dataset = {};
-    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) { dataset[cat] = buildCategory(cat); });
+    // Monta o dataset completo (CORTE/RECORTE/BAIXA/TOTAL) de UM mês específico, usando só a
+    // meta e o realizado daquele mês — nunca misturando com outros meses.
+    function buildDatasetForMonth(mk) {
+      var meta = metaByMonth[mk] || {};
+      var realizado = execByMonth[mk] || {};
+      var DAYS = daysForMonth(mk);
+      var dataset = {};
+      ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) { dataset[cat] = buildCategory(meta, realizado, DAYS, cat); });
 
-    var FIELDS_SUM = ['meta_mes', 'meta_prop', 'realizado', 'falta_prop', 'falta_mes', 'meta_diaria', 'devendo'];
-    var byUnit = {};
-    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
-      dataset[cat].rows.forEach(function (r) {
-        var u = r.unidade;
-        if (!byUnit[u]) { byUnit[u] = {}; FIELDS_SUM.forEach(function (k) { byUnit[u][k] = 0; }); }
-        FIELDS_SUM.forEach(function (k) { byUnit[u][k] += r[k]; });
+      var FIELDS_SUM = ['meta_mes', 'meta_prop', 'realizado', 'falta_prop', 'falta_mes', 'meta_diaria', 'devendo'];
+      var byUnit = {};
+      ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (cat) {
+        dataset[cat].rows.forEach(function (r) {
+          var u = r.unidade;
+          if (!byUnit[u]) { byUnit[u] = {}; FIELDS_SUM.forEach(function (k) { byUnit[u][k] = 0; }); }
+          FIELDS_SUM.forEach(function (k) { byUnit[u][k] += r[k]; });
+        });
       });
-    });
-    var totalRows = Object.keys(byUnit).sort().map(function (u) {
-      var acc = byUnit[u];
-      var pctProp = acc.meta_prop > 0 ? (acc.realizado / acc.meta_prop * 100) : (acc.realizado === 0 ? 100.0 : 999.0);
-      var diasAtraso = acc.meta_diaria > 0 ? (acc.devendo / acc.meta_diaria) : 0;
-      var row = { unidade: u };
-      FIELDS_SUM.forEach(function (k) {
-        row[k] = (k === 'meta_prop' || k === 'falta_prop' || k === 'meta_diaria' || k === 'devendo') ? round1(acc[k]) : acc[k];
+      var totalRows = Object.keys(byUnit).sort().map(function (u) {
+        var acc = byUnit[u];
+        var pctProp = acc.meta_prop > 0 ? (acc.realizado / acc.meta_prop * 100) : (acc.realizado === 0 ? 100.0 : 999.0);
+        var diasAtraso = acc.meta_diaria > 0 ? (acc.devendo / acc.meta_diaria) : 0;
+        var row = { unidade: u };
+        FIELDS_SUM.forEach(function (k) {
+          row[k] = (k === 'meta_prop' || k === 'falta_prop' || k === 'meta_diaria' || k === 'devendo') ? round1(acc[k]) : acc[k];
+        });
+        row.pct_prop = round1(pctProp); row.dias_atraso = round2(diasAtraso);
+        return row;
       });
-      row.pct_prop = round1(pctProp); row.dias_atraso = round2(diasAtraso);
-      return row;
-    });
-    var tTotMetaProp = sumBy(totalRows, 'meta_prop'), tTotReal = sumBy(totalRows, 'realizado');
-    var totalTotals = {
-      meta_mes: sumBy(totalRows, 'meta_mes'), meta_prop: round1(tTotMetaProp), realizado: tTotReal,
-      pct_prop: tTotMetaProp ? round1(tTotReal / tTotMetaProp * 100) : 0,
-      falta_prop: round1(sumBy(totalRows, 'falta_prop')), falta_mes: sumBy(totalRows, 'falta_mes'),
-      meta_diaria: round1(sumBy(totalRows, 'meta_diaria')), devendo: round1(sumBy(totalRows, 'devendo')),
-      dias_atraso: 0
-    };
-    totalTotals.dias_atraso = totalTotals.meta_diaria ? round2(totalTotals.devendo / totalTotals.meta_diaria) : 0;
-    dataset['TOTAL'] = { rows: totalRows, totals: totalTotals };
+      var tTotMetaProp = sumBy(totalRows, 'meta_prop'), tTotReal = sumBy(totalRows, 'realizado');
+      var totalTotals = {
+        meta_mes: sumBy(totalRows, 'meta_mes'), meta_prop: round1(tTotMetaProp), realizado: tTotReal,
+        pct_prop: tTotMetaProp ? round1(tTotReal / tTotMetaProp * 100) : 0,
+        falta_prop: round1(sumBy(totalRows, 'falta_prop')), falta_mes: sumBy(totalRows, 'falta_mes'),
+        meta_diaria: round1(sumBy(totalRows, 'meta_diaria')), devendo: round1(sumBy(totalRows, 'devendo')),
+        dias_atraso: 0
+      };
+      totalTotals.dias_atraso = totalTotals.meta_diaria ? round2(totalTotals.devendo / totalTotals.meta_diaria) : 0;
+      dataset['TOTAL'] = { rows: totalRows, totals: totalTotals };
+      return { dataset: dataset, days: DAYS };
+    }
+
+    // Só entram no seletor de mês os meses que têm EXECUÇÃO e META ao mesmo tempo — um mês com
+    // execução mas sem meta cadastrada não tem com o que comparar, então fica de fora (em vez de
+    // quebrar o painel inteiro) até a meta ser adicionada na aba BASES DE META.
+    function mesSortKey(mk) { var p = mk.split('/'); return parseInt(p[1], 10) * 100 + parseInt(p[0], 10); }
+    var monthsAvailable = Object.keys(execByMonth).filter(function (mk) {
+      return metaByMonth[mk] && Object.keys(metaByMonth[mk]).length;
+    }).sort(function (a, b) { return mesSortKey(a) - mesSortKey(b); });
+
+    if (!monthsAvailable.length) {
+      throw new Error('Não há metas cadastradas para ' + asOfMes + ' (nem para nenhum outro mês com execução) na aba BASES DE META. Adicione as metas (mes/unidade/categoria/meta) para o painel atualizar.');
+    }
+    var defaultMes = monthsAvailable.indexOf(asOfMes) !== -1 ? asOfMes : monthsAvailable[monthsAvailable.length - 1];
+
+    var datasetByMonth = {};
+    monthsAvailable.forEach(function (mk) { datasetByMonth[mk] = buildDatasetForMonth(mk); });
 
     var dates = Object.keys(dailyAll).sort();
     var dailyAllOut = dates.map(function (d) {
@@ -858,7 +887,10 @@
       });
     });
 
-    return { as_of: isoDate(AS_OF), days: DAYS, dataset: dataset, dates: dates, daily_all: dailyAllOut, daily_by_unit: dailyByUnitOut };
+    return {
+      as_of: isoDate(AS_OF), mes_atual: asOfMes, months: monthsAvailable, default_mes: defaultMes,
+      dataset_by_month: datasetByMonth, dates: dates, daily_all: dailyAllOut, daily_by_unit: dailyByUnitOut
+    };
   }
 
   // ==================================================================
@@ -1109,13 +1141,13 @@
   var cacheBeforeFetch = loadCache();
   try {
     var fresh = await computeLiveData();
-    // Sanity check: within the same month, total realizado should only grow as rows are added.
-    // A sharp drop almost always means the fetch landed mid-edit (Sheet tab briefly cleared or
-    // half-renamed during an update) rather than a real change — prefer the cache in that case.
-    if (cacheBeforeFetch && cacheBeforeFetch.data && cacheBeforeFetch.data.as_of &&
-        cacheBeforeFetch.data.as_of.slice(0, 7) === fresh.as_of.slice(0, 7)) {
-      var prevReal = cacheBeforeFetch.data.dataset.TOTAL.totals.realizado;
-      var freshReal = fresh.dataset.TOTAL.totals.realizado;
+    // Sanity check: within the same reference month, total realizado should only grow as rows
+    // are added. A sharp drop almost always means the fetch landed mid-edit (Sheet tab briefly
+    // cleared or half-renamed during an update) rather than a real change — prefer the cache.
+    if (cacheBeforeFetch && cacheBeforeFetch.data && cacheBeforeFetch.data.default_mes === fresh.default_mes &&
+        cacheBeforeFetch.data.dataset_by_month && cacheBeforeFetch.data.dataset_by_month[fresh.default_mes]) {
+      var prevReal = cacheBeforeFetch.data.dataset_by_month[fresh.default_mes].dataset.TOTAL.totals.realizado;
+      var freshReal = fresh.dataset_by_month[fresh.default_mes].dataset.TOTAL.totals.realizado;
       if (prevReal > 0 && freshReal < prevReal * 0.7) {
         throw new Error('Os dados recebidos agora parecem incompletos (total caiu de ' + prevReal + ' para ' + freshReal + ') — a planilha provavelmente está sendo atualizada neste momento.');
       }
@@ -1147,6 +1179,23 @@
   var currentCat = 'TOTAL';
   var currentRegion = 'ALL';
   var currentGerente = 'ALL';
+  // Mês de referência do "Consolidado mês" — controla qual meta/realizado (dataset_by_month)
+  // é exibido nos cartões, na lista de unidades e no ritmo diário. Independente do período
+  // livre do gráfico "Análise diária" (esse continua podendo mostrar qualquer intervalo de
+  // datas, inclusive cruzando meses, só para visualização do volume dia a dia).
+  var currentMes = DATA.default_mes;
+  var MES_ABREV = { '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr', '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago', '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez' };
+  var MES_NOME = { '01': 'janeiro', '02': 'fevereiro', '03': 'março', '04': 'abril', '05': 'maio', '06': 'junho', '07': 'julho', '08': 'agosto', '09': 'setembro', '10': 'outubro', '11': 'novembro', '12': 'dezembro' };
+  function mesLabel(mk) { var p = mk.split('/'); return MES_ABREV[p[0]] + '/' + p[1]; }
+  function mesNomeCompleto(mk) { var p = mk.split('/'); return MES_NOME[p[0]] + '/' + p[1]; }
+  // Primeiro/último dia (ISO) do mês "mk" (MM/AAAA) — usado para sincronizar o período do
+  // gráfico "Análise diária" com o mês escolhido no seletor.
+  function mesBoundsIso(mk) {
+    var p = mk.split('/'), mm = parseInt(p[0], 10), yyyy = parseInt(p[1], 10);
+    var last = new Date(yyyy, mm, 0).getDate();
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    return [yyyy + '-' + pad(mm) + '-01', yyyy + '-' + pad(mm) + '-' + pad(last)];
+  }
 
   // Uma unidade passa se bater com o contrato/região selecionado E com o gerente selecionado
   // (os dois filtros são independentes e se combinam por E — ambos em "Todos" = tudo passa).
@@ -1159,11 +1208,12 @@
   // em qualquer dia útil, só não têm meta sáb/dom).
   function ruleLabel(cat) { return cat === 'CORTE' ? 'seg-qui' : 'seg-sex'; }
   function daysSub(cat) {
+    var days = DATA.dataset_by_month[currentMes].days;
     if (cat === 'TOTAL') {
-      var c = DATA.days.CORTE, r = DATA.days.RECORTE;
+      var c = days.CORTE, r = days.RECORTE;
       return 'Corte ' + c.elapsed + '/' + c.total + 'd (seg-qui) · Recorte/Baixa ' + r.elapsed + '/' + r.total + 'd (seg-sex)';
     }
-    var dd = DATA.days[cat];
+    var dd = days[cat];
     return dd.elapsed + ' de ' + dd.total + ' dias ' + ruleLabel(cat);
   }
   function ruleSentence(cat) {
@@ -1172,14 +1222,20 @@
     return 'corte considera segunda a quinta; recorte e baixa consideram segunda a sexta (sábado e domingo nunca têm meta)';
   }
 
-  // unidade -> { CORTE, RECORTE, BAIXA } realizado, used to draw the segmented bar on the Total view
+  // unidade -> { CORTE, RECORTE, BAIXA } realizado do mês selecionado, usado para desenhar a
+  // barra segmentada na visão Total. Recalculado toda vez que o mês de referência muda.
   var breakdownByUnit = {};
-  ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (c) {
-    DATA.dataset[c].rows.forEach(function (r) {
-      breakdownByUnit[r.unidade] = breakdownByUnit[r.unidade] || {};
-      breakdownByUnit[r.unidade][c] = r.realizado;
+  function rebuildBreakdownByUnit() {
+    breakdownByUnit = {};
+    var dataset = DATA.dataset_by_month[currentMes].dataset;
+    ['CORTE', 'RECORTE', 'BAIXA'].forEach(function (c) {
+      dataset[c].rows.forEach(function (r) {
+        breakdownByUnit[r.unidade] = breakdownByUnit[r.unidade] || {};
+        breakdownByUnit[r.unidade][c] = r.realizado;
+      });
     });
-  });
+  }
+  rebuildBreakdownByUnit();
 
   function fmt(n) { return Math.round(n).toLocaleString('pt-BR'); }
   // Arredondado para cima (ceiling), sem casas decimais — a pedido do usuário,
@@ -1356,6 +1412,40 @@
     });
   });
 
+  // ---- mês (referência) tabs — cada mês tem sua própria meta cadastrada; escolher um mês
+  // aqui troca a meta/realizado mostrados nos cartões, na lista de unidades e no ritmo diário
+  // (o mês mais recente com execução vem marcado "em andamento": a meta proporcional dele é
+  // calculada até hoje, enquanto qualquer mês anterior já é olhado fechado, mês inteiro).
+  var mesTabsEl = document.getElementById('mes-tabs');
+  DATA.months.forEach(function (mk) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn' + (mk === currentMes ? ' active' : '');
+    btn.dataset.mes = mk;
+    var isAtual = mk === DATA.mes_atual;
+    btn.innerHTML = '<span>' + mesLabel(mk) + '<span class="tab-sub">' + (isAtual ? 'em andamento' : 'fechado') + '</span></span>';
+    mesTabsEl.appendChild(btn);
+  });
+  Array.prototype.forEach.call(mesTabsEl.querySelectorAll('.tab-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      currentMes = btn.dataset.mes;
+      Array.prototype.forEach.call(mesTabsEl.querySelectorAll('.tab-btn'), function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      rebuildBreakdownByUnit();
+      // Sincroniza (sem travar) o período do gráfico "Análise diária" com o mês escolhido, para
+      // os dois filtros ficarem coerentes — o usuário ainda pode ajustar o intervalo livremente
+      // depois disso, só para olhar o volume diário.
+      var bounds = mesBoundsIso(currentMes);
+      if (allDates.length) {
+        dateStartInput.value = bounds[0] < allDates[0] ? allDates[0] : bounds[0];
+        dateEndInput.value = bounds[1] > allDates[allDates.length - 1] ? allDates[allDates.length - 1] : bounds[1];
+      }
+      renderDailyChart();
+      render();
+    });
+  });
+
   // ---- daily chart: date + unit filters ----
   var allDates = DATA.dates;
   var dateStartInput = document.getElementById('date-start');
@@ -1365,8 +1455,11 @@
   if (allDates.length) {
     dateStartInput.min = allDates[0]; dateStartInput.max = allDates[allDates.length - 1];
     dateEndInput.min = allDates[0]; dateEndInput.max = allDates[allDates.length - 1];
-    dateStartInput.value = allDates[0];
-    dateEndInput.value = allDates[allDates.length - 1];
+    // Começa já coerente com o mês selecionado acima (não com o histórico inteiro) — "Período
+    // completo" continua disponível pra quem quiser ver todos os meses de uma vez.
+    var initialBounds = mesBoundsIso(currentMes);
+    dateStartInput.value = initialBounds[0] < allDates[0] ? allDates[0] : initialBounds[0];
+    dateEndInput.value = initialBounds[1] > allDates[allDates.length - 1] ? allDates[allDates.length - 1] : initialBounds[1];
   }
 
   function rebuildUnitOptions() {
@@ -1482,13 +1575,16 @@
   function render() {
     var cat = currentCat;
     var meta = CAT_META[cat];
-    var d = DATA.dataset[cat];
+    var d = DATA.dataset_by_month[currentMes].dataset[cat];
+    var mesEmAndamento = currentMes === DATA.mes_atual;
     var anyFilterActive = currentRegion !== 'ALL' || currentGerente !== 'ALL';
     var rows = anyFilterActive ? d.rows.filter(function (r) { return unitPassesFilters(r.unidade); }) : d.rows;
     var totals = anyFilterActive ? aggregateD1Totals(rows) : d.totals;
 
     document.getElementById('subtitle').textContent =
-      'Serviços concluídos (aba "Executados") comparados à meta cadastrada, proporcionalizada até hoje — ' + ruleSentence(cat) + '. Categoria: ' + meta.label + '.';
+      'Serviços concluídos (aba "Executados") comparados à meta cadastrada' +
+      (mesEmAndamento ? ', proporcionalizada até hoje' : ' (mês fechado, meta cheia)') + ' — ' + ruleSentence(cat) +
+      '. Categoria: ' + meta.label + '. Mês: ' + mesNomeCompleto(currentMes) + (mesEmAndamento ? ' (em andamento)' : ' (fechado)') + '.';
 
     document.getElementById('main-legend-swatch').style.background = meta.color;
     document.getElementById('pace-legend-swatch').style.background = meta.color;
@@ -1497,10 +1593,10 @@
 
     renderStatRow(document.getElementById('stat-row'), [
       { label: 'Meta mensal', value: fmt(totals.meta_mes), sub: 'meta do mês inteiro' },
-      { label: 'Meta proporcional (até hoje)', value: fmt1(totals.meta_prop), sub: daysSub(cat) },
+      { label: mesEmAndamento ? 'Meta proporcional (até hoje)' : 'Meta do mês (fechado)', value: fmt1(totals.meta_prop), sub: daysSub(cat) },
       { label: 'Realizado', value: fmt(totals.realizado), sub: meta.unitLabel + ' concluídos', accent: true, color: meta.color },
-      { label: 'Atingimento (proporcional)', value: fmt1(totals.pct_prop) + '%', sub: 'vs. meta até hoje' },
-      { label: 'Faltam (proporcional)', value: fmt1(totals.falta_prop), sub: 'para ficar em dia com hoje' }
+      { label: mesEmAndamento ? 'Atingimento (proporcional)' : 'Atingimento (mês fechado)', value: fmt1(totals.pct_prop) + '%', sub: mesEmAndamento ? 'vs. meta até hoje' : 'vs. meta do mês inteiro' },
+      { label: 'Faltam (proporcional)', value: fmt1(totals.falta_prop), sub: mesEmAndamento ? 'para ficar em dia com hoje' : 'para bater a meta do mês' }
     ]);
 
     document.getElementById('main-note').textContent = nUnits + ' unidades · ordenado por % de atingimento da meta proporcional';
@@ -1585,7 +1681,7 @@
     // ---- pace stat tiles ----
     document.getElementById('pace-note').textContent = nUnits + ' unidades · ordenado por quanto está devendo em relação ao diário';
     renderStatRow(document.getElementById('pace-stat-row'), [
-      { label: 'Falta p/ meta do mês', value: fmt(totals.falta_mes), sub: nUnits + ' unidades · até 30/09' },
+      { label: 'Falta p/ meta do mês', value: fmt(totals.falta_mes), sub: nUnits + ' unidades · até ' + (mesEmAndamento ? fmtDate(DATA.as_of) : fmtDate(mesBoundsIso(currentMes)[1])) },
       { label: 'Meta diária total', value: fmt1(totals.meta_diaria), sub: meta.unitLabel + ' por dia útil (' + (cat === 'TOTAL' ? 'seg-qui/seg-sex' : ruleLabel(cat)) + ')', accent: true, color: meta.color },
       { label: 'Devendo (soma)', value: fmt1(totals.devendo), sub: 'déficit acumulado vs. diário' },
       { label: 'Atraso médio', value: fmt1(totals.dias_atraso) + ' dias', sub: 'ponderado pela meta diária' }
@@ -1636,8 +1732,9 @@
           currentRegion !== 'ALL' ? 'contrato <b>' + REGION_LABEL[currentRegion] + '</b>' : null,
           currentGerente !== 'ALL' ? 'gerência <b>' + currentGerente + '</b>' : null
         ].filter(Boolean).join(' + ') + ': ' + nUnits + ' unidade(s).') + '<br>' +
-      'Corte só tem meta de segunda a quinta (' + DATA.days.CORTE.total + ' dias em setembro/2026, ' + DATA.days.CORTE.elapsed + ' já decorridos até ' + fmtDate2(DATA.as_of) + '). Recorte e baixa ADM podem ser executados em qualquer dia útil e têm meta de segunda a sexta (' + DATA.days.RECORTE.total + ' dias no mês, ' + DATA.days.RECORTE.elapsed + ' já decorridos). Sábado e domingo nunca entram na conta, nem como dia decorrido nem como dia de meta, em nenhuma categoria. No Total, cada categoria é proporcionalizada pela sua própria regra de dias e depois somada.<br>' +
-      'Meta proporcional = meta do mês × (dias úteis decorridos até hoje ÷ dias úteis do mês inteiro, pela regra de cada categoria). Meta diária = meta do mês ÷ dias úteis do mês (pela mesma regra). Devendo = (meta diária × dias já decorridos) − realizado, ou seja, o déficit de cada unidade contra o ritmo que deveria ter mantido até hoje. Dias de atraso = devendo ÷ meta diária.<br>' +
+      'Mês de referência: <b>' + mesNomeCompleto(currentMes) + '</b>' + (mesEmAndamento ? ' (em andamento, dados até ' + fmtDate2(DATA.as_of) + ')' : ' (fechado, meta cheia do mês)') + '. Use o seletor de mês acima do gráfico de barras para ver outros meses cadastrados na base de metas.<br>' +
+      'Corte só tem meta de segunda a quinta (' + DATA.dataset_by_month[currentMes].days.CORTE.total + ' dias em ' + mesNomeCompleto(currentMes) + ', ' + DATA.dataset_by_month[currentMes].days.CORTE.elapsed + ' já decorridos' + (mesEmAndamento ? ' até ' + fmtDate2(DATA.as_of) : ' — mês completo') + '). Recorte e baixa ADM podem ser executados em qualquer dia útil e têm meta de segunda a sexta (' + DATA.dataset_by_month[currentMes].days.RECORTE.total + ' dias no mês, ' + DATA.dataset_by_month[currentMes].days.RECORTE.elapsed + ' já decorridos). Sábado e domingo nunca entram na conta, nem como dia decorrido nem como dia de meta, em nenhuma categoria. No Total, cada categoria é proporcionalizada pela sua própria regra de dias e depois somada.<br>' +
+      'Meta proporcional = meta do mês × (dias úteis decorridos ÷ dias úteis do mês inteiro, pela regra de cada categoria — num mês fechado, decorrido = total, então a meta proporcional vira igual à meta do mês). Meta diária = meta do mês ÷ dias úteis do mês (pela mesma regra). Devendo = (meta diária × dias já decorridos) − realizado, ou seja, o déficit de cada unidade contra o ritmo que deveria ter mantido até o corte considerado. Dias de atraso = devendo ÷ meta diária.<br>' +
       'Análise diária: cada serviço é contado no dia em que foi executado (campo de data de execução). Use os filtros de data e unidade para ver o volume diário de corte, recorte e baixa em qualquer período.<br>' +
       'Classificação por unidade: cada serviço é atribuído à UTD pela localidade (e, no caso de Feira de Santana, pelo bairro) do endereço executado, seguindo a relação oficial localidade/bairro → UTD — não mais pelo centro de serviço informado no sistema.';
   }
