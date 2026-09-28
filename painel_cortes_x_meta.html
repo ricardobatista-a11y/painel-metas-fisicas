@@ -655,27 +655,57 @@
     return totals;
   }
 
-  function parseMetaRows(rows) {
-    var meta = {}, currentUnit = null;
+  // A meta agora muda por mês: a aba "BASES DE META" deixou de ser um bloco fixo por
+  // unidade (um valor único de CORTE/RECORTE/BAIXA para sempre) e virou uma tabela "longa",
+  // uma linha por mês/unidade/categoria: colunas mes | unidade | categoria | meta.
+  // Isso é o que permite o painel trocar a meta sozinho a cada mês, conforme pedido.
+  function monthKeyOf(d) {
+    return String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  }
+  // Aceita "MM/AAAA", "AAAA-MM"/"AAAA-MM-DD" ou qualquer data reconhecida por
+  // parseDateFlexible (ex.: se a célula "mes" vier como data real do Sheets).
+  function normalizeMesKey(v) {
+    var s = (v === undefined || v === null) ? '' : String(v).trim();
+    if (!s) return null;
+    var m = s.match(/^(\d{1,2})\/(\d{4})$/);
+    if (m) return String(parseInt(m[1], 10)).padStart(2, '0') + '/' + m[2];
+    m = s.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
+    if (m) return String(parseInt(m[2], 10)).padStart(2, '0') + '/' + m[1];
+    var d = parseDateFlexible(s);
+    if (d) return monthKeyOf(d);
+    return null;
+  }
+  function parseMetaValueBR(raw) {
+    var s = (raw === undefined || raw === null) ? '' : String(raw).trim();
+    var v = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(v)) v = parseFloat(s);
+    return isNaN(v) ? 0 : v;
+  }
+  // Retorna { "MM/AAAA": { "UNIDADE NORMALIZADA": { CORTE, RECORTE, BAIXA } } }.
+  function parseMetaRowsMonthly(rows) {
+    var metaByMonth = {};
+    if (!rows || !rows.length) return metaByMonth;
+    var header = rows[0];
+    var idx = {};
+    header.forEach(function (h, i) { idx[normJS(h)] = i; });
+    var iMes = idx['MES'], iUnidade = idx['UNIDADE'], iCategoria = idx['CATEGORIA'], iMeta = idx['META'];
+    if (iMes === undefined || iUnidade === undefined || iCategoria === undefined || iMeta === undefined) {
+      return metaByMonth;
+    }
     for (var i = 1; i < rows.length; i++) {
       var row = rows[i];
       if (!row || !row.length) continue;
-      var label = row[0];
-      if (label === undefined || label === null || String(label).trim() === '') continue;
-      var labelS = String(label).trim();
-      if (labelS === 'BAIXA' || labelS === 'CORTE' || labelS === 'RECORTE') {
-        if (currentUnit !== null) {
-          var raw = (row[1] === undefined || row[1] === null) ? '' : String(row[1]).trim();
-          var v = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
-          if (isNaN(v)) v = parseFloat(raw);
-          meta[currentUnit][labelS] = isNaN(v) ? 0 : v;
-        }
-      } else {
-        currentUnit = normUnitLabel(labelS);
-        meta[currentUnit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
-      }
+      var mes = normalizeMesKey(row[iMes]);
+      if (!mes) continue;
+      var unidade = normUnitLabel(row[iUnidade]);
+      if (!unidade) continue;
+      var cat = String(row[iCategoria] || '').trim().toUpperCase();
+      if (cat !== 'CORTE' && cat !== 'RECORTE' && cat !== 'BAIXA') continue;
+      if (!metaByMonth[mes]) metaByMonth[mes] = {};
+      if (!metaByMonth[mes][unidade]) metaByMonth[mes][unidade] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+      metaByMonth[mes][unidade][cat] = parseMetaValueBR(row[iMeta]);
     }
-    return meta;
+    return metaByMonth;
   }
 
   async function computeLiveData() {
@@ -684,8 +714,14 @@
     if (!execRows.length) throw new Error('A aba EXECUTADOS voltou vazia.');
     if (!metaRows.length) throw new Error('A aba BASES DE META voltou vazia.');
 
-    var meta = parseMetaRows(metaRows);
-    if (!Object.keys(meta).length) throw new Error('Não foi possível interpretar as metas da aba BASES DE META.');
+    var metaByMonth = parseMetaRowsMonthly(metaRows);
+    if (!Object.keys(metaByMonth).length) throw new Error('Não foi possível interpretar as metas da aba BASES DE META (esperado colunas mes / unidade / categoria / meta).');
+    // Unidades conhecidas em QUALQUER mês cadastrado — usado só para filtrar linhas do
+    // EXECUTADOS que pertencem a uma unidade real antes de sabermos qual é o mês de referência.
+    var ALL_META_UNITS = {};
+    Object.keys(metaByMonth).forEach(function (mk) {
+      Object.keys(metaByMonth[mk]).forEach(function (u) { ALL_META_UNITS[u] = true; });
+    });
 
     var header = execRows[0];
     var idx = {};
@@ -695,31 +731,44 @@
       throw new Error('O cabeçalho da aba EXECUTADOS não tem as colunas esperadas (tipo_servico / Bairro / Localidade / dta_exec_srv).');
     }
 
-    var realizado = {}, dailyAll = {}, dailyByUnit = {}, maxDate = null;
+    // execByMonth[mes][unidade][cat] = realizado daquele mês/unidade/categoria. Antes o
+    // "realizado" somava TODOS os meses da aba EXECUTADOS de uma vez só contra uma meta fixa;
+    // agora que a aba tem várias execuções de meses diferentes, cada mês só pode ser comparado
+    // com a própria meta — por isso o realizado é acumulado por mês e só o mês do AS_OF (o mês
+    // mais recente com execução) é usado no comparativo abaixo.
+    var execByMonth = {}, dailyAll = {}, dailyByUnit = {}, maxDate = null;
     for (var r = 1; r < execRows.length; r++) {
       var row = execRows[r];
       if (!row || !row.length) continue;
       var cat = categorizeTipo(row[iTipo]);
       if (!cat) continue;
       var unit = resolveUnitJS(row[iLoc], row[iBairro]);
-      if (!unit || !meta.hasOwnProperty(unit)) continue;
-      if (!realizado[unit]) realizado[unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
-      realizado[unit][cat] += 1;
-
+      if (!unit || !ALL_META_UNITS.hasOwnProperty(unit)) continue;
       var d = parseDateFlexible(row[iData]);
-      if (d) {
-        var dstr = isoDate(d);
-        if (!dailyAll[dstr]) dailyAll[dstr] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
-        dailyAll[dstr][cat] += 1;
-        if (!dailyByUnit[unit]) dailyByUnit[unit] = {};
-        if (!dailyByUnit[unit][dstr]) dailyByUnit[unit][dstr] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
-        dailyByUnit[unit][dstr][cat] += 1;
-        if (!maxDate || d > maxDate) maxDate = d;
-      }
+      if (!d) continue;
+
+      var mk = monthKeyOf(d);
+      if (!execByMonth[mk]) execByMonth[mk] = {};
+      if (!execByMonth[mk][unit]) execByMonth[mk][unit] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+      execByMonth[mk][unit][cat] += 1;
+
+      var dstr = isoDate(d);
+      if (!dailyAll[dstr]) dailyAll[dstr] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+      dailyAll[dstr][cat] += 1;
+      if (!dailyByUnit[unit]) dailyByUnit[unit] = {};
+      if (!dailyByUnit[unit][dstr]) dailyByUnit[unit][dstr] = { CORTE: 0, RECORTE: 0, BAIXA: 0 };
+      dailyByUnit[unit][dstr][cat] += 1;
+      if (!maxDate || d > maxDate) maxDate = d;
     }
     if (!maxDate) throw new Error('Nenhuma data de execução válida foi encontrada na aba EXECUTADOS.');
 
     var AS_OF = maxDate;
+    var mesRef = monthKeyOf(AS_OF);
+    var meta = metaByMonth[mesRef];
+    if (!meta || !Object.keys(meta).length) {
+      throw new Error('Não há metas cadastradas para ' + mesRef + ' na aba BASES DE META. Adicione as metas desse mês (mes/unidade/categoria/meta) para o painel atualizar.');
+    }
+    var realizado = execByMonth[mesRef] || {};
     var year = AS_OF.getFullYear(), month = AS_OF.getMonth();
     var daysInMonth = new Date(year, month + 1, 0).getDate();
     var monthDays = [];
@@ -820,7 +869,7 @@
   // month-to-date so far, today alone, and a run-rate projection to the
   // end of the month. Separate from the D-1 (consolidated, complete days
   // only) view above — same math primitives (resolveUnitJS, categorizeTipo,
-  // parseDateFlexible, parseMetaRows), different time window.
+  // parseDateFlexible, parseMetaRowsMonthly), different time window.
   // ==================================================================
   // Parses the "dd/MM/yyyy HH:mm:ss" string written by the Apps Script
   // trigger (onEditInstalado -> registrarAtualizacaoDoDia) into STATUS_TEMPO_REAL!A2.
@@ -856,8 +905,6 @@
     var doDiaRows = await fetchSheetRows('EXECUTADOS_DO_DIA');
     var metaRows = await fetchSheetRows('BASES DE META');
     var realUpdateAt = await fetchRealUpdateTimestamp();
-    var meta = parseMetaRows(metaRows);
-    if (!Object.keys(meta).length) throw new Error('Não foi possível interpretar as metas da aba BASES DE META.');
 
     function colIndex(header, name) {
       for (var i = 0; i < header.length; i++) if (String(header[i]).trim() === name) return i;
@@ -868,6 +915,17 @@
     today.setHours(0, 0, 0, 0);
     var todayIso = isoDate(today);
     var monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // D+0 é sempre "o mês corrente" (o de hoje) — dá pra resolver a meta desse mês antes
+    // de processar qualquer linha do EXECUTADOS, diferente do D-1 (que só sabe o mês de
+    // referência depois de varrer os dados em busca da data mais recente).
+    var metaByMonth = parseMetaRowsMonthly(metaRows);
+    if (!Object.keys(metaByMonth).length) throw new Error('Não foi possível interpretar as metas da aba BASES DE META (esperado colunas mes / unidade / categoria / meta).');
+    var mesRef = monthKeyOf(today);
+    var meta = metaByMonth[mesRef];
+    if (!meta || !Object.keys(meta).length) {
+      throw new Error('Não há metas cadastradas para ' + mesRef + ' na aba BASES DE META. Adicione as metas desse mês (mes/unidade/categoria/meta) para o painel atualizar.');
+    }
 
     // Merge both sources into one row list, keyed by Nota to avoid double-counting
     // a row that exists in both tabs during the window between the 20h merge and
