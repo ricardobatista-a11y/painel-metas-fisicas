@@ -253,6 +253,15 @@
   .wfm-export-btn:disabled { opacity: .55; cursor: default; }
   .wfm-toprow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .wfm-pending-note { font-size: 11.5px; color: var(--wfm-text-soft); text-align: center; padding: 6px 4px 0; }
+
+  /* ---- "Maiores Problemas" (motivos de não preenchimento) tab: textual stat values
+     (grupo/subgrupo names) can be long, so this one stat row wraps instead of overflowing. */
+  #motivos-stat-row .value { font-size: 16px; line-height: 1.25; white-space: normal; word-break: break-word; }
+  /* Ranking rows here show "Grupo — Subgrupo" labels, often longer than a unit name, so this
+     list gets a wider label column and lets the text wrap instead of ellipsis-truncating it. */
+  #motivos-rank-rows .row { grid-template-columns: 260px 1fr 60px; }
+  #motivos-rank-rows .unit-name { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.3; }
+  @media (max-width: 640px) { #motivos-rank-rows .row { grid-template-columns: 1fr; } }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -271,6 +280,7 @@
       <button type="button" class="tab-btn active" data-view="d1"><span>Consolidado mês<span class="tab-sub">histórico fechado</span></span></button>
       <button type="button" class="tab-btn" data-view="d0"><span>D+0 Tempo real<span class="tab-sub">em andamento</span></span></button>
       <button type="button" class="tab-btn" data-view="wfm"><span>Acompanhamento WFM<span class="tab-sub">GPM x WFM (Coelba)</span></span></button>
+      <button type="button" class="tab-btn" data-view="motivos"><span>Maiores Problemas<span class="tab-sub">motivos de não preenchimento</span></span></button>
     </div>
   </div>
 
@@ -475,6 +485,38 @@
     <footer class="note" id="wfm-footnote"></footer>
 
   </div>
+
+  <div class="wrap" id="view-motivos" style="display:none;">
+
+    <header class="page-head">
+      <h1>Maiores problemas — motivos de não preenchimento</h1>
+      <p class="subtitle" id="motivos-subtitle"></p>
+    </header>
+
+    <div class="tabs" id="motivos-mes-tabs"></div>
+    <div class="tabs" id="motivos-utd-tabs" style="margin-top:6px;"></div>
+
+    <div class="stat-row" id="motivos-stat-row" style="margin-top:14px;"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Piores unidades (UTD)</h2>
+        <span class="panel-note" id="motivos-utd-rank-note"></span>
+      </div>
+      <div class="rows" id="motivos-utd-rank-rows"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Maiores problemas (Grupo + Subgrupo)</h2>
+        <span class="panel-note" id="motivos-rank-note"></span>
+      </div>
+      <div class="rows" id="motivos-rank-rows"></div>
+    </section>
+
+    <footer class="note" id="motivos-footnote"></footer>
+
+  </div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
@@ -494,6 +536,10 @@
   // acima. Vazio até o usuário criar a planilha (a partir do esqueleto BASE_GPM/BASE_WFM
   // enviado) e me passar o ID/link — a aba WFM mostra um aviso amigável enquanto isso.
   var SHEET_ID_WFM = '1MM_vb0t2jAugFxHGwircguuVX-_b7fM9-K-XQJhr62c';
+  // Planilha de "Análise D-1 WFM" / motivos de não preenchimento. A aba usada aqui é
+  // "HISTORICO ADERÊNCIA" (a base já preenchida/validada pelos planejadores) — NUNCA
+  // "ANALISE D-1" (que guarda só as pendências ainda sem motivo preenchido).
+  var SHEET_ID_MOTIVOS = '1qowCuDpsZw9QFOQM212o3yf8JQ3geHBSBOKhSG92PDQ';
   function gvizUrl(sheetName) {
     return gvizUrlFor(SHEET_ID, sheetName);
   }
@@ -539,6 +585,24 @@
     s = String(s).trim().toUpperCase();
     s = stripAccentsJS(s);
     return s.replace(/\s+/g, ' ');
+  }
+
+  // Column lookup by header name, tolerant to accents/case/spacing \u2014 used to read the
+  // "HISTORICO ADER\u00caNCIA" sheet (see MOTIVOS ENGINE below) without hardcoding column
+  // letters, since only columns A-J of that ~28-column sheet were confirmed by screenshot.
+  function findColByExact(header, name) {
+    var target = normJS(name);
+    for (var i = 0; i < header.length; i++) { if (normJS(header[i]) === target) return i; }
+    return -1;
+  }
+  function findColContains(header, substr, excludeSubstr) {
+    var target = normJS(substr);
+    var exclude = excludeSubstr ? normJS(excludeSubstr) : null;
+    for (var i = 0; i < header.length; i++) {
+      var h = normJS(header[i]);
+      if (h.indexOf(target) >= 0 && (!exclude || h.indexOf(exclude) < 0)) return i;
+    }
+    return -1;
   }
 
   var LOC_MAP = {"ANGICAL":"BARREIRAS","BAIANOPOLIS":"BARREIRAS","BARREIRAS":"BARREIRAS","CATOLANDIA":"BARREIRAS","COTEGIPE":"BARREIRAS","CRISTOPOLIS":"BARREIRAS","DIANOPOLIS":"BARREIRAS","FORMOSA DO RIO PRETO":"LUIS EDUARDO MAGALHAES","RIACHAO DAS NEVES":"LUIS EDUARDO MAGALHAES","SANTA RITA DE CASSIA":"LUIS EDUARDO MAGALHAES","SAO DESIDERIO":"LUIS EDUARDO MAGALHAES","WANDERLEY":"BARREIRAS","LUIS EDUARDO MAGALHAES":"LUIS EDUARDO MAGALHAES","PARATINGA":"BOM JESUS DA LAPA","BOM JESUS DA LAPA":"BOM JESUS DA LAPA","BREJOLANDIA":"BOM JESUS DA LAPA","CANAPOLIS":"BOM JESUS DA LAPA","SANTANA":"BOM JESUS DA LAPA","SERRA DO RAMALHO":"BOM JESUS DA LAPA","SERRA DOURADA":"BOM JESUS DA LAPA","SITIO DO MATO":"BOM JESUS DA LAPA","TABOCAS DO BREJO VELHO":"BOM JESUS DA LAPA","MATINA":"BOM JESUS DA LAPA","RIACHO DE SANTANA":"BOM JESUS DA LAPA","COCOS":"SANTA MARIA DA VITORIA","CORIBE":"SANTA MARIA DA VITORIA","CORRENTINA":"SANTA MARIA DA VITORIA","JABORANDI":"SANTA MARIA DA VITORIA","SANTA MARIA DA VITORIA":"SANTA MARIA DA VITORIA","SAO FELIX DO CORIBE":"SANTA MARIA DA VITORIA","FEIRA DA MATA":"SANTA MARIA DA VITORIA","ARACATU":"BRUMADO","BARRA DA ESTIVA":"BRUMADO","BRUMADO":"BRUMADO","CACULE":"BRUMADO","CONTENDAS DO SINCORA":"BRUMADO","GUAJERU":"BRUMADO","IBIASSUCE":"BRUMADO","IBICOARA":"BRUMADO","ITUACU":"BRUMADO","LAGOA REAL":"BRUMADO","MALHADA DE PEDRAS":"BRUMADO","RIO DO ANTONIO":"BRUMADO","TANHACU":"BRUMADO","ABAIRA":"LIVRAMENTO DE NOSSA SENHORA","BOTUPORA":"LIVRAMENTO DE NOSSA SENHORA","CATURAMA":"LIVRAMENTO DE NOSSA SENHORA","DOM BASILIO":"LIVRAMENTO DE NOSSA SENHORA","ERICO CARDOSO":"LIVRAMENTO DE NOSSA SENHORA","JUSSIAPE":"LIVRAMENTO DE NOSSA SENHORA","LIVRAMENTO DE NOSSA SENHORA":"LIVRAMENTO DE NOSSA SENHORA","PARAMIRIM":"LIVRAMENTO DE NOSSA SENHORA","PIATA":"LIVRAMENTO DE NOSSA SENHORA","RIO DE CONTAS":"LIVRAMENTO DE NOSSA SENHORA","RIO DO PIRES":"LIVRAMENTO DE NOSSA SENHORA","TANQUE NOVO":"LIVRAMENTO DE NOSSA SENHORA","FEIRA DE SANTANA":"FEIRA CENTRO","ANGUERA":"FEIRA NORTE","ANTONIO CARDOSO":"FEIRA NORTE","IPECAETA":"FEIRA NORTE","IPIRA":"FEIRA NORTE","PINTADAS":"FEIRA NORTE","RAFAEL JAMBEIRO":"FEIRA NORTE","SANTO ESTEVAO":"FEIRA NORTE","SERRA PRETA":"FEIRA NORTE","CONCEICAO DA FEIRA":"FEIRA SUL","SAO GONCALO DOS CAMPOS":"FEIRA SUL","AMELIA RODRIGUES":"SANTO AMARO","CABACEIRAS DO PARAGUACU":"SANTO AMARO","CACHOEIRA":"SANTO AMARO","CONCEICAO DO JACUIPE":"SANTO AMARO","CORACAO DE MARIA":"SANTO AMARO","GOVERNADOR MANGABEIRA":"SANTO AMARO","MARAGOGIPE":"SANTO AMARO","MURITIBA":"SANTO AMARO","SANTO AMARO":"SANTO AMARO","SAO FELIX":"SANTO AMARO","SAUBARA":"SANTO AMARO","TEODORO SAMPAIO":"SANTO AMARO","TERRA NOVA":"SANTO AMARO","CAETITE":"GUANAMBI","CANDIBA":"GUANAMBI","CARINHANHA":"GUANAMBI","GUANAMBI":"GUANAMBI","IGAPORA":"GUANAMBI","IUIU":"GUANAMBI","JACARACI":"GUANAMBI","LICINIO DE ALMEIDA":"GUANAMBI","MALHADA":"GUANAMBI","MORTUGABA":"GUANAMBI","PALMAS DE MONTE ALTO":"GUANAMBI","PINDAI":"GUANAMBI","SEBASTIAO LARANJEIRAS":"GUANAMBI","URANDI":"GUANAMBI","MANSIDAO":"IBOTIRAMA","BARRA":"IBOTIRAMA","BOQUIRA":"IBOTIRAMA","BROTAS DE MACAUBAS":"IBOTIRAMA","BURITIRAMA":"IBOTIRAMA","IBIPITANGA":"IBOTIRAMA","IBITIARA":"IBOTIRAMA","IBOTIRAMA":"IBOTIRAMA","IPUPIARA":"IBOTIRAMA","MACAUBAS":"IBOTIRAMA","MORPARA":"IBOTIRAMA","MUQUEM DE SAO FRANCISCO":"IBOTIRAMA","NOVO HORIZONTE":"IBOTIRAMA","OLIVEIRA DOS BREJINHOS":"IBOTIRAMA","AMERICA DOURADA":"IRECE","BARRA DO MENDES":"IRECE","BARRO ALTO":"IRECE","CAFARNAUM":"IRECE","CANARANA":"IRECE","CENTRAL":"IRECE","GENTIO DO OURO":"IRECE","IBIPEBA":"IRECE","IBITITA":"IRECE","IRECE":"IRECE","ITAGUACU DA BAHIA":"IRECE","JOAO DOURADO":"IRECE","JUSSARA":"IRECE","LAPAO":"IRECE","MORRO DO CHAPEU":"IRECE","MULUNGU DO MORRO":"IRECE","PRESIDENTE DUTRA":"IRECE","SAO GABRIEL":"IRECE","UIBAI":"IRECE","XIQUE XIQUE":"IRECE","VARZEA NOVA":"IRECE","XIQUE-XIQUE":"IRECE","ITABERABA":"ITABERABA","BOA VISTA DO TUPIM":"ITABERABA","IACU":"ITABERABA","MARCIONILIO SOUZA":"ITABERABA","ITAETE":"ITABERABA","IRAMAIA":"ITABERABA","RUY BARBOSA":"ITABERABA","MACAJUBA":"ITABERABA","UTINGA":"ITABERABA","WAGNER":"ITABERABA","LAJEDINHO":"ITABERABA","BONITO":"ITABERABA","SEABRA":"SEABRA","BONINAL":"SEABRA","IRAQUARA":"SEABRA","SOUTO SOARES":"SEABRA","PALMEIRAS":"SEABRA","LENCOIS":"SEABRA","ANDARAI":"SEABRA","NOVA REDENCAO":"SEABRA","IBIQUERA":"SEABRA","MUCUGE":"SEABRA","BREJOES":"JEQUIE","CRAVOLANDIA":"JEQUIE","IRAJUBA":"JEQUIE","ITAQUARA":"JEQUIE","ITIRUCU":"JEQUIE","JAGUAQUARA":"JEQUIE","JEQUIE":"JEQUIE","LAFAIETE COUTINHO":"JEQUIE","LAJEDO DO TABOCAL":"JEQUIE","MANOEL VITORINO":"JEQUIE","MARACAS":"JEQUIE","NOVA ITARANA":"JEQUIE","PLANALTINO":"JEQUIE","SANTA INES":"JEQUIE","JITAUNA":"JEQUIE","LAGEDO DO TABOCAL":"JEQUIE","CANDEAL":"CONCEICAO DO COITE","CAPELA DO ALTO ALEGRE":"CONCEICAO DO COITE","CONCEICAO DO COITE":"CONCEICAO DO COITE","ICHU":"CONCEICAO DO COITE","NOVA FATIMA":"CONCEICAO DO COITE","PE DE SERRA":"CONCEICAO DO COITE","RETIROLANDIA":"CONCEICAO DO COITE","RIACHAO DO JACUIPE":"CONCEICAO DO COITE","SANTA LUZ":"CONCEICAO DO COITE","SAO DOMINGOS":"CONCEICAO DO COITE","TANQUINHO":"CONCEICAO DO COITE","VALENTE":"CONCEICAO DO COITE","AGUA FRIA":"SERRINHA","ARACI":"SERRINHA","BARROCAS":"SERRINHA","BIRITINGA":"SERRINHA","IRARA":"SERRINHA","LAMARAO":"SERRINHA","OURICANGAS":"SERRINHA","SANTA BARBARA":"SERRINHA","SANTANOPOLIS":"SERRINHA","SATIRO DIAS":"SERRINHA","SERRINHA":"SERRINHA","TEOFILANDIA":"SERRINHA","ITAPETINGA":"ITAPETINGA","CAATIBA":"ITAPETINGA","ITORORO":"ITAPETINGA","FIRMINO ALVES":"ITAPETINGA","IBICUI":"ITAPETINGA","IGUAI":"ITAPETINGA","NOVA CANAA":"ITAPETINGA","MACARANI":"ITAPETINGA","MAIQUINIQUE":"ITAPETINGA","ITARANTIM":"ITAPETINGA","POTIRAGUA":"ITAPETINGA","RIBEIRAO DO LARGO":"ITAPETINGA","ITAMBE":"ITAPETINGA","ANAGE":"VITORIA DA CONQUISTA","BARRA DO CHOCA":"VITORIA DA CONQUISTA","BELO CAMPO":"VITORIA DA CONQUISTA","BOA NOVA":"VITORIA DA CONQUISTA","BOM JESUS DA SERRA":"VITORIA DA CONQUISTA","CAETANOS":"VITORIA DA CONQUISTA","CANDIDO SALES":"VITORIA DA CONQUISTA","CARAIBAS":"VITORIA DA CONQUISTA","CONDEUBA":"VITORIA DA CONQUISTA","CORDEIROS":"VITORIA DA CONQUISTA","ENCRUZILHADA":"VITORIA DA CONQUISTA","MAETINGA":"VITORIA DA CONQUISTA","MIRANTE":"VITORIA DA CONQUISTA","PIRIPA":"VITORIA DA CONQUISTA","PLANALTO":"VITORIA DA CONQUISTA","POCOES":"VITORIA DA CONQUISTA","PRESIDENTE JANIO QUADROS":"VITORIA DA CONQUISTA","TREMEDAL":"VITORIA DA CONQUISTA","VITORIA DA CONQUISTA":"VITORIA DA CONQUISTA","XIQUEXIQUE":"IRECE"};
@@ -1297,6 +1361,16 @@
       } else {
         el.style.color = '';
         el.textContent = wfmLoaded ? 'Base GPM x WFM carregada' : 'Buscando base GPM x WFM...';
+      }
+      return;
+    }
+    if (currentView === 'motivos') {
+      if (motivosError) {
+        el.style.color = 'var(--critical)';
+        el.textContent = 'Não foi possível carregar os motivos de não preenchimento';
+      } else {
+        el.style.color = '';
+        el.textContent = motivosLoaded ? 'Base de motivos carregada' : 'Buscando base de motivos (HISTORICO ADERÊNCIA)...';
       }
       return;
     }
@@ -2407,6 +2481,321 @@
     wfmExportExcel();
   });
 
+  // ==================================================================
+  // MOTIVOS ENGINE — "Maiores Problemas": motivos de não preenchimento,
+  // lidos da aba "HISTORICO ADERÊNCIA" da planilha SHEET_ID_MOTIVOS
+  // (NUNCA da aba "ANALISE D-1", que só guarda pendências ainda sem
+  // motivo). Ranking por Grupo + Subgrupo, com quebra por UTD — conforme
+  // pedido do usuário, com padrão "mês atual" (a aba tem ~105 mil linhas,
+  // então um recorte por mês evita processar/renderizar tudo de uma vez).
+  // A estrutura exata de colunas (além de A-J) não pôde ser confirmada
+  // por fetch ao vivo (a aba é grande demais para a ferramenta usada
+  // nesta sessão) — por isso as colunas são resolvidas pelo NOME do
+  // cabeçalho (findColByExact/findColContains), não pela letra, e
+  // qualquer coluna essencial ausente gera um erro explícito em vez de
+  // um resultado calculado errado.
+  // ==================================================================
+  var motivosLoaded = false;
+  var motivosError = null;
+  var MOTIVOS_DATA = null;
+  var motivosCurrentMes = null;
+  var motivosFilterUtd = null;
+
+  function motivosMesSortKey(mk) {
+    var p = mk.split('/');
+    return parseInt(p[1], 10) * 100 + parseInt(p[0], 10);
+  }
+
+  async function computeMotivosData() {
+    if (!SHEET_ID_MOTIVOS) throw new Error('A planilha de motivos ainda não foi configurada neste arquivo (SHEET_ID_MOTIVOS vazio).');
+
+    var rows = await fetchSheetRowsFrom(SHEET_ID_MOTIVOS, 'HISTORICO ADERÊNCIA');
+    if (!rows.length) throw new Error('A aba "HISTORICO ADERÊNCIA" está vazia ou não pôde ser lida.');
+
+    var header = rows[0];
+    var dateIdx = findColContains(header, 'DATA TRANSFERENCIA');
+    if (dateIdx < 0) dateIdx = findColContains(header, 'DATA');
+    var utdIdx = findColByExact(header, 'UTD');
+    if (utdIdx < 0) utdIdx = findColContains(header, 'UTD');
+    var grupoIdx = findColByExact(header, 'GRUPO');
+    if (grupoIdx < 0) grupoIdx = findColContains(header, 'GRUPO', 'SUB');
+    var subgrupoIdx = findColContains(header, 'SUBGRUPO');
+    if (subgrupoIdx < 0) subgrupoIdx = findColContains(header, 'SUB GRUPO');
+    var motivoIdx = findColByExact(header, 'MOTIVO');
+    var regionalIdx = findColByExact(header, 'REGIONAL');
+    var equipeIdx = findColContains(header, 'EQUIPE');
+    var notaIdx = findColByExact(header, 'NOTA');
+
+    if (dateIdx < 0 || utdIdx < 0 || grupoIdx < 0 || subgrupoIdx < 0) {
+      throw new Error('A aba "HISTORICO ADERÊNCIA" não tem as colunas esperadas (DATA TRANSFERÊNCIA, UTD, GRUPO, SUBGRUPO) — os nomes dos cabeçalhos podem ter mudado. Colunas encontradas: ' + header.join(', '));
+    }
+
+    var rowsOut = [], monthsSet = {};
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r || !r.length) continue;
+      var d = parseDateFlexible(r[dateIdx]);
+      if (!d) continue;
+      var mk = monthKeyOf(d);
+      var utd = (r[utdIdx] || '').trim() || '(sem UTD)';
+      var grupo = (r[grupoIdx] || '').trim() || '(sem grupo)';
+      var subgrupo = (r[subgrupoIdx] || '').trim() || '(sem subgrupo)';
+      monthsSet[mk] = true;
+      rowsOut.push({
+        date: isoDate(d), mes: mk, utd: utd, grupo: grupo, subgrupo: subgrupo,
+        motivo: motivoIdx >= 0 ? (r[motivoIdx] || '').trim() : '',
+        regional: regionalIdx >= 0 ? (r[regionalIdx] || '').trim() : '',
+        equipe: equipeIdx >= 0 ? (r[equipeIdx] || '').trim() : '',
+        nota: notaIdx >= 0 ? (r[notaIdx] || '').trim() : ''
+      });
+    }
+    if (!rowsOut.length) throw new Error('Nenhuma linha com data válida foi encontrada na aba "HISTORICO ADERÊNCIA".');
+
+    var months = Object.keys(monthsSet).sort(function (a, b) { return motivosMesSortKey(a) - motivosMesSortKey(b); });
+    return { rows: rowsOut, months: months };
+  }
+
+  function motivosDefaultMes(months) {
+    if (!months.length) return null;
+    var todayMk = monthKeyOf(new Date());
+    if (months.indexOf(todayMk) >= 0) return todayMk;
+    return months[months.length - 1]; // mês mais recente disponível, se o atual ainda não tem registros
+  }
+
+  function motivosRowsForMonth(mk) {
+    return MOTIVOS_DATA.rows.filter(function (r) { return r.mes === mk; });
+  }
+
+  function motivosFilteredRows() {
+    var rows = motivosRowsForMonth(motivosCurrentMes);
+    if (motivosFilterUtd) rows = rows.filter(function (r) { return r.utd === motivosFilterUtd; });
+    return rows;
+  }
+
+  function renderMotivosMesTabs() {
+    var el = document.getElementById('motivos-mes-tabs');
+    var months = MOTIVOS_DATA.months.slice().sort(function (a, b) { return motivosMesSortKey(b) - motivosMesSortKey(a); });
+    el.innerHTML = months.map(function (mk) {
+      var active = mk === motivosCurrentMes;
+      var count = motivosRowsForMonth(mk).length;
+      return '<button type="button" class="tab-btn' + (active ? ' active' : '') + '" data-mes="' + mk + '">' +
+        '<span>' + mesLabel(mk) + '<span class="tab-sub">' + fmt(count) + ' registro(s)</span></span></button>';
+    }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('.tab-btn'), function (btn) {
+      btn.addEventListener('click', function () {
+        motivosCurrentMes = btn.dataset.mes;
+        motivosFilterUtd = null;
+        Array.prototype.forEach.call(el.querySelectorAll('.tab-btn'), function (b) {
+          b.classList.toggle('active', b === btn);
+        });
+        renderMotivosAll();
+      });
+    });
+  }
+
+  function renderMotivosUtdTabs() {
+    var el = document.getElementById('motivos-utd-tabs');
+    // Calculado sobre o mês inteiro, sem aplicar o filtro de UTD já selecionado — assim todas
+    // as UTDs continuam visíveis/clicáveis (permite trocar de UTD direto com um clique), mesmo
+    // padrão usado no Acompanhamento WFM.
+    var rows = motivosRowsForMonth(motivosCurrentMes);
+    var byUtd = {};
+    rows.forEach(function (r) { byUtd[r.utd] = (byUtd[r.utd] || 0) + 1; });
+    var utds = Object.keys(byUtd).sort(function (a, b) { return byUtd[b] - byUtd[a]; });
+
+    var html = '<button type="button" class="tab-btn' + (!motivosFilterUtd ? ' active' : '') + '" data-utd="">' +
+      '<span>Todas as UTDs<span class="tab-sub">' + fmt(rows.length) + ' registro(s)</span></span></button>';
+    html += utds.map(function (u) {
+      var active = u === motivosFilterUtd;
+      return '<button type="button" class="tab-btn' + (active ? ' active' : '') + '" data-utd="' + u.replace(/"/g, '&quot;') + '">' +
+        '<span>' + u + '<span class="tab-sub">' + fmt(byUtd[u]) + ' registro(s)</span></span></button>';
+    }).join('');
+    el.innerHTML = html;
+
+    Array.prototype.forEach.call(el.querySelectorAll('.tab-btn'), function (btn) {
+      btn.addEventListener('click', function () {
+        motivosSetUtdFilter(btn.dataset.utd || null);
+      });
+    });
+  }
+
+  // Ponto único pra trocar o filtro de UTD — usado tanto pelas abas (pills) acima quanto
+  // pelas barras do ranking "Piores unidades" abaixo, e os dois ficam sempre sincronizados
+  // porque qualquer clique refaz a tela inteira (abas, stats e os dois rankings).
+  function motivosSetUtdFilter(utd) {
+    if (!utd) { motivosFilterUtd = null; } // "Todas as UTDs" sempre limpa, nunca alterna
+    else { motivosFilterUtd = (motivosFilterUtd === utd) ? null : utd; }
+    renderMotivosAll();
+  }
+
+  // Ranking de unidades (UTD) com mais registros no mês — a visão "piores unidades" pedida
+  // pelo usuário, complementando o ranking por Grupo + Subgrupo abaixo. Calculado sobre o mês
+  // inteiro, SEM aplicar o filtro de UTD já selecionado (mesmo padrão das abas acima), pra que
+  // todas as unidades continuem visíveis/clicáveis — clicar numa barra aqui ou numa aba ali tem
+  // o mesmo efeito (ambas chamam motivosSetUtdFilter). As cores marcam o terço pior (vermelho),
+  // intermediário (laranja) e melhor (neutro) do próprio mês selecionado — é um indicador
+  // relativo, não um limiar fixo de aderência.
+  function renderMotivosUtdRanking() {
+    var rows = motivosRowsForMonth(motivosCurrentMes);
+    var byUtd = {};
+    rows.forEach(function (r) {
+      if (!byUtd[r.utd]) byUtd[r.utd] = { utd: r.utd, count: 0, byKey: {} };
+      byUtd[r.utd].count++;
+      var key = r.grupo + ' — ' + r.subgrupo;
+      byUtd[r.utd].byKey[key] = (byUtd[r.utd].byKey[key] || 0) + 1;
+    });
+    var list = Object.keys(byUtd).map(function (k) { return byUtd[k]; }).sort(function (a, b) { return b.count - a.count; });
+
+    var noteEl = document.getElementById('motivos-utd-rank-note');
+    if (noteEl) noteEl.textContent = list.length ? (fmt(list.length) + ' UTD(s) com registro') : '';
+
+    var container = document.getElementById('motivos-utd-rank-rows');
+    clearChildren(container);
+    if (!list.length) {
+      container.innerHTML = '<div class="chart-empty">Sem registros no mês selecionado.</div>';
+      return;
+    }
+    var maxCount = list[0].count;
+    list.forEach(function (item, idx) {
+      var tercil = Math.floor((idx / list.length) * 3); // 0 = pior terço, 1 = meio, 2 = melhor terço
+      var tierClass = tercil === 0 ? 'critical' : (tercil === 1 ? 'warning' : 'good');
+      var barPct = maxCount ? (item.count / maxCount * 100) : 0;
+      var isActive = item.utd === motivosFilterUtd;
+      var row = document.createElement('div');
+      row.className = 'row' + (isActive ? ' row-complete' : '');
+      row.innerHTML =
+        '<div class="row-label"><span class="status-dot tier-' + tierClass + '"></span><span class="unit-name">' + item.utd + '</span></div>' +
+        '<div class="row-track"><div class="bar" style="width:' + barPct + '%; --bar-color:var(--' + tierClass + ')"></div></div>' +
+        '<div class="row-numbers mono"><span class="pct">' + fmt(item.count) + '</span></div>';
+      var track = row.querySelector('.row-track');
+      track.style.cursor = 'pointer';
+      track.addEventListener('mouseenter', function (e) {
+        var topKeys = Object.keys(item.byKey).sort(function (a, b) { return item.byKey[b] - item.byKey[a]; }).slice(0, 6).map(function (k) {
+          return '<div class="tt-row"><span>' + k + '</span><b>' + fmt(item.byKey[k]) + '</b></div>';
+        }).join('');
+        showTooltip(e,
+          '<div class="tt-title">' + item.utd + '</div>' +
+          '<div class="tt-row"><span>Total</span><b>' + fmt(item.count) + '</b></div>' +
+          topKeys
+        );
+      });
+      track.addEventListener('mousemove', moveTooltip);
+      track.addEventListener('mouseleave', hideTooltip);
+      track.addEventListener('click', function () { motivosSetUtdFilter(item.utd); });
+      container.appendChild(row);
+    });
+  }
+
+  function renderMotivosStats() {
+    var rows = motivosFilteredRows();
+    var byGrupo = {};
+    rows.forEach(function (r) { byGrupo[r.grupo] = (byGrupo[r.grupo] || 0) + 1; });
+    var topGrupo = Object.keys(byGrupo).sort(function (a, b) { return byGrupo[b] - byGrupo[a]; })[0];
+    var byUtdDistinct = {};
+    rows.forEach(function (r) { byUtdDistinct[r.utd] = true; });
+    var byKey = {};
+    rows.forEach(function (r) { byKey[r.grupo + ' — ' + r.subgrupo] = true; });
+
+    renderStatRow(document.getElementById('motivos-stat-row'), [
+      { label: 'Registros', value: fmt(rows.length), sub: mesNomeCompleto(motivosCurrentMes) + (motivosFilterUtd ? ' · ' + motivosFilterUtd : ' · todas as UTDs') },
+      { label: 'Grupo mais comum', value: topGrupo || '—', sub: topGrupo ? (fmt(byGrupo[topGrupo]) + ' registro(s)') : '' },
+      { label: 'Motivos distintos', value: fmt(Object.keys(byKey).length), sub: 'combinações grupo + subgrupo' },
+      { label: 'UTDs com registro', value: fmt(Object.keys(byUtdDistinct).length), sub: motivosFilterUtd ? 'com o filtro atual' : 'no mês selecionado' }
+    ]);
+  }
+
+  function renderMotivosRanking() {
+    var rows = motivosFilteredRows();
+    var byKey = {};
+    rows.forEach(function (r) {
+      var key = r.grupo + ' — ' + r.subgrupo;
+      if (!byKey[key]) byKey[key] = { grupo: r.grupo, subgrupo: r.subgrupo, count: 0, byUtd: {} };
+      byKey[key].count++;
+      byKey[key].byUtd[r.utd] = (byKey[key].byUtd[r.utd] || 0) + 1;
+    });
+    var list = Object.keys(byKey).map(function (k) { return byKey[k]; }).sort(function (a, b) { return b.count - a.count; });
+
+    var noteEl = document.getElementById('motivos-rank-note');
+    if (noteEl) noteEl.textContent = list.length ? (fmt(list.length) + ' combinação(ões) grupo + subgrupo') : '';
+
+    var container = document.getElementById('motivos-rank-rows');
+    clearChildren(container);
+    if (!list.length) {
+      container.innerHTML = '<div class="chart-empty">Sem registros para o filtro selecionado.</div>';
+      return;
+    }
+    var maxCount = list[0].count;
+    list.forEach(function (item) {
+      var barPct = maxCount ? (item.count / maxCount * 100) : 0;
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML =
+        '<div class="row-label"><span class="unit-name">' + item.grupo + ' — ' + item.subgrupo + '</span></div>' +
+        '<div class="row-track"><div class="bar" style="width:' + barPct + '%; --bar-color:var(--accent)"></div></div>' +
+        '<div class="row-numbers mono"><span class="pct">' + fmt(item.count) + '</span></div>';
+      var track = row.querySelector('.row-track');
+      track.addEventListener('mouseenter', function (e) {
+        var utdLines = Object.keys(item.byUtd).sort(function (a, b) { return item.byUtd[b] - item.byUtd[a]; }).slice(0, 8).map(function (u) {
+          return '<div class="tt-row"><span>' + u + '</span><b>' + fmt(item.byUtd[u]) + '</b></div>';
+        }).join('');
+        showTooltip(e,
+          '<div class="tt-title">' + item.grupo + ' — ' + item.subgrupo + '</div>' +
+          '<div class="tt-row"><span>Total</span><b>' + fmt(item.count) + '</b></div>' +
+          utdLines
+        );
+      });
+      track.addEventListener('mousemove', moveTooltip);
+      track.addEventListener('mouseleave', hideTooltip);
+      container.appendChild(row);
+    });
+  }
+
+  function renderMotivosAll() {
+    renderMotivosUtdTabs();
+    renderMotivosStats();
+    renderMotivosUtdRanking();
+    renderMotivosRanking();
+  }
+
+  async function loadMotivos() {
+    var subtitleEl = document.getElementById('motivos-subtitle');
+    subtitleEl.textContent = 'Carregando base de motivos (aba "HISTORICO ADERÊNCIA")... a planilha é grande, pode levar um pouco.';
+    motivosError = null;
+    try {
+      MOTIVOS_DATA = await computeMotivosData();
+      motivosLoaded = true;
+      motivosCurrentMes = motivosDefaultMes(MOTIVOS_DATA.months);
+      motivosFilterUtd = null;
+      if (!motivosCurrentMes) throw new Error('Não há registros com data válida na aba "HISTORICO ADERÊNCIA".');
+
+      var isCurrentReal = motivosCurrentMes === monthKeyOf(new Date());
+      subtitleEl.textContent = 'Fonte: aba "HISTORICO ADERÊNCIA" · ' + fmt(MOTIVOS_DATA.rows.length) + ' registro(s) no total' +
+        (isCurrentReal ? '' : ' · mês atual ainda sem registros, mostrando o mês mais recente disponível (' + mesNomeCompleto(motivosCurrentMes) + ')');
+
+      renderMotivosMesTabs();
+      renderMotivosAll();
+      document.getElementById('motivos-footnote').innerHTML =
+        'Fonte: aba "HISTORICO ADERÊNCIA" (a base já preenchida pelos planejadores a partir da aba "ANALISE D-1" — esta última guarda só as pendências, por isso não é usada aqui). ' +
+        'O preenchimento dessa base não é 100% — os números abaixo refletem só os casos já registrados pelos planejadores, servindo como indicador direcional de onde os problemas são mais frequentes, não uma contagem exaustiva. ' +
+        '"Piores unidades" ranqueia as UTDs com mais registros no mês (vermelho = pior terço, laranja = meio, verde = melhor terço, sempre relativo ao próprio mês selecionado); "Maiores problemas" ranqueia por Grupo + Subgrupo do motivo. ' +
+        'Clique numa UTD (seja nas abas acima ou direto na barra do ranking) para isolar essa unidade (inclusive "(sem UTD)") em ambos os rankings e nos cards; clique de novo para limpar. ' +
+        'Por padrão mostra o mês atual (mesmo critério de período usado no resto do painel); use as abas de mês para consultar períodos anteriores. ' +
+        'Esta aba tem muitas linhas — se o carregamento demorar ou falhar, tente recarregar a página; se persistir, avise para ajustarmos.';
+      renderTopbarMeta();
+    } catch (err) {
+      motivosError = err;
+      subtitleEl.textContent = '';
+      document.getElementById('motivos-mes-tabs').innerHTML = '';
+      document.getElementById('motivos-utd-tabs').innerHTML = '';
+      document.getElementById('motivos-stat-row').innerHTML = '';
+      document.getElementById('motivos-utd-rank-rows').innerHTML = '';
+      document.getElementById('motivos-rank-rows').innerHTML = '';
+      document.getElementById('motivos-footnote').innerHTML = '<span style="color:var(--critical)">Não foi possível carregar os motivos: ' + err.message + '</span>';
+      console.error(err);
+      renderTopbarMeta();
+    }
+  }
+
   var viewSwitchEl = document.getElementById('view-switch');
   Array.prototype.forEach.call(viewSwitchEl.querySelectorAll('.tab-btn'), function (btn) {
     btn.addEventListener('click', function () {
@@ -2418,9 +2807,11 @@
       document.getElementById('view-d1').style.display = view === 'd1' ? '' : 'none';
       document.getElementById('view-d0').style.display = view === 'd0' ? '' : 'none';
       document.getElementById('view-wfm').style.display = view === 'wfm' ? '' : 'none';
+      document.getElementById('view-motivos').style.display = view === 'motivos' ? '' : 'none';
       renderTopbarMeta();
       if (view === 'd0' && !d0Loaded) loadD0();
       if (view === 'wfm' && !wfmLoaded) loadWfm();
+      if (view === 'motivos' && !motivosLoaded) loadMotivos();
     });
   });
 
